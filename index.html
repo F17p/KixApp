@@ -55,7 +55,9 @@
     
     firebase.initializeApp(firebaseConfig);
 
-    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha');
+    window.recaptchaVerifier = new firebase.auth.RecaptchaVerifier('recaptcha', {
+  size: 'normal'
+});
 
     function sendCode() {
       const phoneNumber = document.getElementById('phone').value;
