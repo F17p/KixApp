@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>KixApp Login</title>
+</head>
+<body>
+
+<h2>Login KixApp</h2>
+
+<input id="email" placeholder="email" />
+<br><br>
+
+<input id="password" type="password" placeholder="password" />
+<br><br>
+
+<button onclick="login()">Entrar</button>
+
+<p id="msg"></p>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+const supabaseUrl = "https://sksrqwtzwibrrijfpqcy.supabase.co";
+const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
+
+const supabase = supabase.createClient(supabaseUrl, supabaseKey);
+
+async function login() {
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
+
+  const { data, error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    document.getElementById("msg").innerText = error.message;
+    return;
+  }
+
+  document.getElementById("msg").innerText = "Login feito com sucesso!";
+}
+</script>
+
+</body>
+</html>
