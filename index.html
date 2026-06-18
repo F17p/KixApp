@@ -38,8 +38,15 @@
     <h3>💰 Carteira</h3>
     <p id="userSaldo">0 Kz</p>
 
-<button onclick="depositar(1000)">
-  ➕ Depositar 1000 Kz
+<input
+  id="valorDeposito"
+  type="number"
+  placeholder="Valor em Kz">
+
+<br><br>
+
+<button onclick="depositarValor()">
+  ➕ Adicionar saldo
 </button>
   </div>
 
@@ -191,6 +198,22 @@ if (error) {
 
   document.getElementById("userSaldo").innerText =
   Number(profile.saldo || 0) + " Kz";
+  }
+
+  async function depositarValor() {
+
+  const valor = Number(
+    document.getElementById("valorDeposito").value
+  );
+
+  if (!valor || valor <= 0) {
+    alert("Digite um valor válido");
+    return;
+  }
+
+  await depositar(valor);
+
+  document.getElementById("valorDeposito").value = "";
   }
 
   verificarSessao();
