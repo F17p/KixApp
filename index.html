@@ -37,6 +37,10 @@
   <div style="background:#dff0ff;padding:15px;border-radius:10px;margin-top:10px;">
     <h3>💰 Carteira</h3>
     <p id="userSaldo">0 Kz</p>
+
+<button onclick="depositar(1000)">
+  ➕ Depositar 1000 Kz
+</button>
   </div>
 
   <div style="background:#f7f7f7;padding:15px;border-radius:10px;margin-top:10px;">
@@ -63,6 +67,8 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+  let currentUser = null;
+  
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -78,6 +84,8 @@ async function login() {
   }
 
   const user = data.user;
+
+  currentUser = user;
 
   // garantir perfil existe
   await client.from('profiles').upsert({
@@ -124,6 +132,35 @@ async function logout() {
   await client.auth.signOut();
   location.reload();
 }
+
+  async function depositar(valor) {
+
+  const { data: profile } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
+
+  const novoSaldo = Number(profile.saldo || 0) + valor;
+
+  await client
+    .from('profiles')
+    .update({
+      saldo: novoSaldo
+    })
+    .eq('id', currentUser.id);
+
+  await client
+    .from('transactions')
+    .insert({
+      user_id: currentUser.id,
+      tipo: 'deposito',
+      valor: valor
+    });
+
+  document.getElementById("userSaldo").innerText =
+    novoSaldo + " Kz";
+  }
 </script>
 
 </body>
