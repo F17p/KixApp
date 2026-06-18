@@ -42,10 +42,17 @@ async function login() {
     return;
   }
 
-  document.getElementById("msg").innerText = "Login feito com sucesso!";
-  console.log("USER:", data.user);
-}
+  const user = data.user;
 
+  await client.from('profiles').upsert({
+    id: user.id,
+    email: user.email
+  });
+
+  document.getElementById("msg").innerText =
+    "Login feito com sucesso!";
+}
+  
   async function signup() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
