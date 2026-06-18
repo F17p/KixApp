@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <title>KixApp Login</title>
 </head>
+
 <body>
 
 <div id="loginBox">
@@ -22,7 +23,14 @@
   <p id="msg"></p>
 
 </div>
-  
+
+<!-- APP -->
+<div id="app" style="display:none;">
+  <h1>KixApp</h1>
+  <p id="userEmail"></p>
+  <button onclick="logout()">Terminar sessão</button>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -52,23 +60,18 @@ async function login() {
     email: user.email
   });
 
-  document.getElementById("userEmail").innerText =
-  "Utilizador: " + user.email;
-
   document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
 
-document.getElementById("app").style.display = "block";
-
-document.getElementById("app").style.display = "block";
-  document.getElementById("email").style.display = "none";
-document.getElementById("password").style.display = "none";
+  document.getElementById("userEmail").innerText =
+    "Utilizador: " + user.email;
 }
-  
-  async function signup() {
+
+async function signup() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { data, error } = await client.auth.signUp({
+  const { error } = await client.auth.signUp({
     email,
     password
   });
@@ -78,14 +81,15 @@ document.getElementById("password").style.display = "none";
     return;
   }
 
-  document.getElementById("msg").innerText = "Conta criada! Agora faz login.";
-  }
+  document.getElementById("msg").innerText =
+    "Conta criada! Agora faz login.";
+}
 
-  async function logout() {
+async function logout() {
   await client.auth.signOut();
   location.reload();
-  }
+}
 </script>
-  
+
 </body>
 </html>
