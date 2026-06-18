@@ -6,30 +6,23 @@
 </head>
 <body>
 
-<h2>Login KixApp</h2>
+<div id="loginBox">
 
-<input id="email" placeholder="email" />
-<br><br>
+  <h2>Login KixApp</h2>
 
-<input id="password" type="password" placeholder="password" />
-<br><br>
+  <input id="email" placeholder="Email">
+  <br><br>
 
-<button onclick="login()">Entrar</button>
+  <input id="password" type="password" placeholder="Senha">
+  <br><br>
 
-  <div id="app" style="display:none;">
-
-  <h1>KixApp</h1>
-
-  <p id="userEmail"></p>
-
-  <button onclick="logout()">Terminar sessão</button>
-
-  </div>
-
+  <button onclick="login()">Entrar</button>
   <button onclick="signup()">Criar conta</button>
 
-<p id="msg"></p>
+  <p id="msg"></p>
 
+</div>
+  
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
