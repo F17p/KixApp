@@ -143,12 +143,17 @@ async function logout() {
 
   const novoSaldo = Number(profile.saldo || 0) + valor;
 
-  await client
-    .from('profiles')
-    .update({
-      saldo: novoSaldo
-    })
-    .eq('id', currentUser.id);
+  const { error } = await client
+  .from('profiles')
+  .update({
+    saldo: novoSaldo
+  })
+  .eq('id', currentUser.id);
+
+if (error) {
+  alert(error.message);
+  return;
+}
 
   await client
     .from('transactions')
@@ -185,7 +190,7 @@ async function logout() {
     "👤 " + profile.email;
 
   document.getElementById("userSaldo").innerText =
-    (profile.saldo || 0) + " Kz";
+  Number(profile.saldo || 0) + " Kz";
   }
 
   verificarSessao();
