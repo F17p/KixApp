@@ -27,15 +27,21 @@
 <!-- APP -->
 <div id="app" style="display:none;">
 
-  <h1>📱 KixApp Dashboard</h1>
+  <h1>📱 KixApp</h1>
 
-  <div style="background:#f2f2f2; padding:15px; margin-top:10px; border-radius:10px;">
+  <div style="background:#e9e9e9; padding:15px; border-radius:10px; margin-top:10px;">
+    <h3>Perfil</h3>
     <p id="userEmail"></p>
   </div>
 
-  <div style="margin-top:20px;">
-    <button onclick="logout()">🚪 Terminar sessão</button>
+  <div style="background:#dff0ff; padding:15px; border-radius:10px; margin-top:10px;">
+    <h3>💰 Saldo</h3>
+    <p>0 Kz</p>
   </div>
+
+  <br>
+
+  <button onclick="logout()">🚪 Terminar sessão</button>
 
 </div>
 
@@ -63,16 +69,24 @@ async function login() {
 
   const user = data.user;
 
+  // cria/atualiza perfil
   await client.from('profiles').upsert({
     id: user.id,
     email: user.email
   });
 
+  // buscar perfil completo
+  const { data: profile } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', user.id)
+    .single();
+
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
 
   document.getElementById("userEmail").innerText =
-    "Utilizador: " + user.email;
+    "👤 " + profile.email;
 }
 
 async function signup() {
