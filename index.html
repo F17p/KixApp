@@ -36,7 +36,7 @@
 
   <div style="background:#dff0ff; padding:15px; border-radius:10px; margin-top:10px;">
     <h3>💰 Saldo</h3>
-    <p>0 Kz</p>
+    <p id="userSaldo">0 Kz</p>
   </div>
 
   <br>
@@ -69,13 +69,13 @@ async function login() {
 
   const user = data.user;
 
-  // cria/atualiza perfil
+  // garantir perfil existe
   await client.from('profiles').upsert({
     id: user.id,
     email: user.email
   });
 
-  // buscar perfil completo
+  // buscar perfil atualizado
   const { data: profile } = await client
     .from('profiles')
     .select('*')
@@ -87,6 +87,9 @@ async function login() {
 
   document.getElementById("userEmail").innerText =
     "👤 " + profile.email;
+
+  document.getElementById("userSaldo").innerText =
+    profile.saldo + " Kz";
 }
 
 async function signup() {
