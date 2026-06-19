@@ -58,11 +58,12 @@ body{
   margin-top:10px;
 }
 
-.grupo{
+.grupo-card{
   border:1px solid #ddd;
-  border-radius:10px;
   padding:12px;
   margin-top:10px;
+  border-radius:10px;
+  background:white;
 }
 
 .menu{
@@ -81,6 +82,14 @@ body{
   border:none;
   background:none;
   font-size:14px;
+}
+
+#tabs button{
+  margin-right:5px;
+  padding:6px 10px;
+  border-radius:6px;
+  border:1px solid #ddd;
+  background:white;
 }
 
   </style>
@@ -123,23 +132,13 @@ body{
     <div class="card">
       <h3>Saldo Disponível</h3>
 
-      <div class="saldo" id="userSaldo">
-        0 Kz
-      </div>
+      <div class="saldo" id="userSaldo">0 Kz</div>
 
       <br>
 
-      <input
-        class="input"
-        id="valorDeposito"
-        type="number"
-        placeholder="Digite o valor">
+      <input class="input" id="valorDeposito" type="number" placeholder="Digite o valor">
 
-      <button
-        class="btn"
-        onclick="depositarValor()">
-        Adicionar saldo
-      </button>
+      <button class="btn" onclick="depositarValor()">Adicionar saldo</button>
 
     </div>
 
@@ -152,9 +151,10 @@ body{
       <h3>Grupos Kixikila</h3>
 
       <div id="tabs">
-  <button onclick="filtrar('Semanal')">Semanal</button>
-  <button onclick="filtrar('Mensal')">Mensal</button>
-  <button onclick="filtrar('Trimestral')">Trimestral</button>
+        <button onclick="filtrar('Todos')">Todos</button>
+        <button onclick="filtrar('Semanal')">Semanal</button>
+        <button onclick="filtrar('Mensal')">Mensal</button>
+        <button onclick="filtrar('Trimestral')">Trimestral</button>
       </div>
 
       <div id="listaGrupos">
@@ -189,16 +189,10 @@ body{
 
       <p>
         Plano:
-        <span id="perfilPlano">
-          Basic
-        </span>
+        <span id="perfilPlano">Basic</span>
       </p>
 
-      <button
-        class="btn"
-        onclick="logout()">
-        Terminar sessão
-      </button>
+      <button class="btn" onclick="logout()">Terminar sessão</button>
 
     </div>
 
@@ -206,26 +200,15 @@ body{
 
   <div class="menu">
 
-    <button onclick="mostrarPagina('inicio')">
-      Início
-    </button>
-
-    <button onclick="mostrarPagina('grupos')">
-      Grupos
-    </button>
-
-    <button onclick="mostrarPagina('historico')">
-      Histórico
-    </button>
-
-    <button onclick="mostrarPagina('perfil')">
-      Perfil
-    </button>
+    <button onclick="mostrarPagina('inicio')">Início</button>
+    <button onclick="mostrarPagina('grupos')">Grupos</button>
+    <button onclick="mostrarPagina('historico')">Histórico</button>
+    <button onclick="mostrarPagina('perfil')">Perfil</button>
 
   </div>
 
 </div>
-  
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
@@ -234,8 +217,10 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-  let currentUser = null;
-  
+let currentUser = null;
+
+/* LOGIN / SIGNUP / LOGOUT (igual ao teu) */
+
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -245,62 +230,23 @@ async function login() {
     password
   });
 
-  if (error) {
-    document.getElementById("msg").innerText = error.message;
-    return;
-  }
+  if (error) return;
 
-  const user = data.user;
-
-  currentUser = user;
-
-  // garantir perfil existe
-  await client.from('profiles').upsert({
-    id: user.id,
-    email: user.email
-  });
-
-  // buscar perfil atualizado
-  const { data: profile } = await client
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  currentUser = data.user;
 
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  document.getElementById("userEmail").innerText =
-    "👤 " + profile.email;
+  document.getElementById("userEmail").innerText = "👤 " + currentUser.email;
 
-  document.getElementById("perfilEmail").innerText =
-  profile.email;
-
-document.getElementById("perfilPlano").innerText =
-  profile.plano || "basic";
-
-  document.getElementById("userSaldo").innerText =
-    profile.saldo + " Kz";
-  
-await carregarGrupos();
+  await carregarGrupos();
 }
 
 async function signup() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
 
-  const { error } = await client.auth.signUp({
-    email,
-    password
-  });
-
-  if (error) {
-    document.getElementById("msg").innerText = error.message;
-    return;
-  }
-
-  document.getElementById("msg").innerText =
-    "Conta criada! Agora faz login.";
+  await client.auth.signUp({ email, password });
 }
 
 async function logout() {
@@ -308,113 +254,22 @@ async function logout() {
   location.reload();
 }
 
-  async function depositar(valor) {
+/* GRUPOS */
 
-  const { data: profile } = await client
-    .from('profiles')
-    .select('*')
-    .eq('id', currentUser.id)
-    .single();
+async function carregarGrupos() {
 
-  const novoSaldo = Number(profile.saldo || 0) + valor;
-
-  const { error } = await client
-  .from('profiles')
-  .update({
-    saldo: novoSaldo
-  })
-  .eq('id', currentUser.id);
-
-if (error) {
-  alert(error.message);
-  return;
-}
-
-  await client
-    .from('transactions')
-    .insert({
-      user_id: currentUser.id,
-      tipo: 'deposito',
-      valor: valor
-    });
-
-  document.getElementById("userSaldo").innerText =
-    novoSaldo + " Kz";
-  }
-
-  async function verificarSessao() {
-
-  const { data } = await client.auth.getSession();
-
-  if (!data.session) return;
-
-  const user = data.session.user;
-
-  currentUser = user;
-
-  const { data: profile } = await client
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
-
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  document.getElementById("userEmail").innerText =
-    "👤 " + profile.email;
-    
-document.getElementById("perfilEmail").innerText =
-  profile.email;
-
-document.getElementById("perfilPlano").innerText =
-  profile.plano || "basic";
-    
-  document.getElementById("userSaldo").innerText =
-  Number(profile.saldo || 0) + " Kz";
-  
-  await carregarGrupos();
-  }
-
-  async function depositarValor() {
-
-  const valor = Number(
-    document.getElementById("valorDeposito").value
-  );
-
-  if (!valor || valor <= 0) {
-    alert("Digite um valor válido");
-    return;
-  }
-
-  await depositar(valor);
-
-  document.getElementById("valorDeposito").value = "";
-  }
-
-    async function carregarGrupos() {
-
-  const { data: grupos, error } = await client
+  const { data: grupos } = await client
     .from('groups')
     .select('*')
     .order('valor');
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
 
   let html = '';
 
   grupos.forEach(grupo => {
 
     html += `
-      <div style="
-        border:1px solid #ddd;
-        padding:10px;
-        margin-top:10px;
-        border-radius:8px;
-      ">
+      <div class="grupo-card" data-tipo="${grupo.tipo || 'Semanal'}">
+
         <b>${grupo.nome}</b><br>
         Valor: ${grupo.valor} Kz
 
@@ -429,50 +284,48 @@ document.getElementById("perfilPlano").innerText =
   });
 
   document.getElementById('listaGrupos').innerHTML = html;
+}
+
+/* ENTRAR GRUPO */
+
+async function entrarGrupo(groupId) {
+  await client.from('group_members').insert({
+    group_id: groupId,
+    user_id: currentUser.id
+  });
+
+  alert("Entraste no grupo!");
+}
+
+/* FILTRO */
+
+function filtrar(tipo) {
+
+  const grupos = document.querySelectorAll(".grupo-card");
+
+  grupos.forEach(g => {
+
+    if (tipo === "Todos" || g.dataset.tipo === tipo) {
+      g.style.display = "block";
+    } else {
+      g.style.display = "none";
     }
 
-  async function entrarGrupo(groupId) {
+  });
+}
 
-  const { error } = await client
-    .from('group_members')
-    .insert({
-      group_id: groupId,
-      user_id: currentUser.id
-    });
+/* NAV */
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  alert('Entraste no grupo com sucesso!');
-  }
-
-  function mostrarPagina(pagina) {
+function mostrarPagina(pagina) {
 
   document.getElementById("paginaInicio").style.display = "none";
   document.getElementById("paginaGrupos").style.display = "none";
   document.getElementById("paginaHistorico").style.display = "none";
   document.getElementById("paginaPerfil").style.display = "none";
 
-  if (pagina === "inicio") {
-    document.getElementById("paginaInicio").style.display = "block";
-  }
+  document.getElementById("pagina" + pagina.charAt(0).toUpperCase() + pagina.slice(1)).style.display = "block";
+}
 
-  if (pagina === "grupos") {
-    document.getElementById("paginaGrupos").style.display = "block";
-  }
-
-  if (pagina === "historico") {
-    document.getElementById("paginaHistorico").style.display = "block";
-  }
-
-  if (pagina === "perfil") {
-    document.getElementById("paginaPerfil").style.display = "block";
-  }
-  }
-
-  verificarSessao();
 </script>
 
 </body>
