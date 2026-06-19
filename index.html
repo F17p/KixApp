@@ -233,16 +233,30 @@ async function login() {
     password
   });
 
-  if (error) return;
+  if (error) {
+    alert(error.message);
+    return;
+  }
 
   currentUser = data.user;
+
+  const { data: profile } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
 
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  document.getElementById("userEmail").innerText = "👤 " + currentUser.email;
+  document.getElementById("userEmail").innerText =
+    "👤 " + currentUser.email;
+
   document.getElementById("perfilNome").innerText =
-  profile.nome || "Sem nome";
+    profile.nome || "Sem nome";
+
+  document.getElementById("userSaldo").innerText =
+    (profile.saldo || 0) + " Kz";
 
   await carregarGrupos();
 }
@@ -377,6 +391,36 @@ function mostrarPagina(pagina) {
   alert("Nome atualizado!");
   }
 
+    async function verificarSessao() {
+
+  const { data } = await client.auth.getSession();
+
+  if (!data.session) return;
+
+  currentUser = data.session.user;
+
+  const { data: profile } = await client
+    .from('profiles')
+    .select('*')
+    .eq('id', currentUser.id)
+    .single();
+
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  document.getElementById("userEmail").innerText =
+    "👤 " + currentUser.email;
+
+  document.getElementById("perfilNome").innerText =
+    profile.nome || "Sem nome";
+
+  document.getElementById("userSaldo").innerText =
+    (profile.saldo || 0) + " Kz";
+
+  await carregarGrupos();
+  }
+  
+verificarSessao();
 </script>
 
 </body>
