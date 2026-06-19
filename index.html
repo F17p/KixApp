@@ -30,11 +30,23 @@
   <h1>📱 KixApp</h1>
 
   <div style="background:#e9e9e9;padding:15px;border-radius:10px;margin-top:10px;">
-    <h3>👤 Perfil</h3>
-    <p id="userEmail"></p>
-  </div>
+    <div id="paginaInicio">
 
-  <div style="background:#dff0ff;padding:15px;border-radius:10px;margin-top:10px;">
+  <h3>👤 Perfil</h3>
+
+  <p id="userEmail"></p>
+
+    </div>
+
+  <div
+  id="paginaGrupos"
+  style="
+  display:none;
+  background:#f7f7f7;
+  padding:15px;
+  border-radius:10px;
+  margin-top:10px;
+">
     <h3>💰 Carteira</h3>
     <p id="userSaldo">0 Kz</p>
 
@@ -51,7 +63,10 @@
   </div>
 
   <div style="background:#f7f7f7;padding:15px;border-radius:10px;margin-top:10px;">
-    <h3>📜 Histórico</h3>
+    <div id="paginaHistorico" style="display:none;">
+  <div id="historico">
+    </div>
+    </div>
     <p>Nenhuma transação.</p>
   </div>
 
@@ -70,6 +85,28 @@
   <div id="listaGrupos">
     Carregando grupos...
   </div>
+
+</div>
+
+  <hr>
+
+<div id="menu">
+
+  <button onclick="mostrarPagina('inicio')">
+    🏠 Início
+  </button>
+
+  <button onclick="mostrarPagina('grupos')">
+    👥 Grupos
+  </button>
+
+  <button onclick="mostrarPagina('historico')">
+     Histórico
+  </button>
+
+  <button onclick="mostrarPagina('perfil')">
+    👤 Perfil
+  </button>
 
 </div>
   
@@ -285,6 +322,25 @@ if (error) {
   }
 
   alert('Entraste no grupo com sucesso!');
+  }
+
+  function mostrarPagina(pagina) {
+
+  document.getElementById("paginaInicio").style.display = "none";
+  document.getElementById("paginaGrupos").style.display = "none";
+  document.getElementById("paginaHistorico").style.display = "none";
+
+  if (pagina === "inicio") {
+    document.getElementById("paginaInicio").style.display = "block";
+  }
+
+  if (pagina === "grupos") {
+    document.getElementById("paginaGrupos").style.display = "block";
+  }
+
+  if (pagina === "historico") {
+    document.getElementById("paginaHistorico").style.display = "block";
+  }
   }
 
   verificarSessao();
