@@ -126,9 +126,9 @@ async function login() {
 
   document.getElementById("userSaldo").innerText =
     profile.saldo + " Kz";
+  
+await carregarGrupos();
 }
-
-  await carregarGrupos();
 
 async function signup() {
   const email = document.getElementById("email").value;
@@ -211,9 +211,9 @@ if (error) {
 
   document.getElementById("userSaldo").innerText =
   Number(profile.saldo || 0) + " Kz";
-  }
-
+  
   await carregarGrupos();
+  }
 
   async function depositarValor() {
 
