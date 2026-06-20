@@ -195,6 +195,22 @@ body{
         <span id="perfilPlano">Basic</span>
       </p>
 
+      <div class="card">
+
+  <h3>💎 Plano Atual</h3>
+
+  <p>Plano: <span id="planoAtual">Basic</span></p>
+
+  <p>
+    Grupos usados:
+    <span id="gruposUsados">0</span> /
+    <span id="gruposLimite">3</span>
+  </p>
+
+  <p>Status: 🔵 Ativo</p>
+
+      </div>
+
       <button class="btn" onclick="logout()">Terminar sessão</button>
 
     </div>
@@ -221,6 +237,15 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
+
+  let planoAtual = "Basic";
+let gruposUsados = 0;
+
+const limitesPlano = {
+  Basic: 3,
+  Pro: 10,
+  Premium: 999
+};
 
 /* LOGIN / SIGNUP / LOGOUT (igual ao teu) */
 
@@ -310,12 +335,30 @@ async function carregarGrupos() {
 /* ENTRAR GRUPO */
 
 async function entrarGrupo(groupId) {
-  await client.from('group_members').insert({
-    group_id: groupId,
-    user_id: currentUser.id
-  });
 
-  alert("Entraste no grupo!");
+  if (gruposUsados >= limitesPlano[planoAtual]) {
+    alert("❌ Limite do plano atingido");
+    return;
+  }
+
+  const { error } = await client
+    .from('group_members')
+    .insert({
+      group_id: groupId,
+      user_id: currentUser.id
+    });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  gruposUsados++;
+
+  document.getElementById("gruposUsados").innerText =
+    gruposUsados;
+
+  alert("✔ Entraste no grupo!");
 }
 
 /* FILTRO */
