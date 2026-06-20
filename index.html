@@ -312,7 +312,11 @@ async function carregarGrupos() {
   grupos.forEach(grupo => {
 
     html += `
-      <div class="grupo-card" data-tipo="${grupo.tipo || 'Semanal'}">
+      <div
+  class="grupo-card"
+  data-id="${grupo.id}"
+  data-tipo="${grupo.tipo || 'Semanal'}"
+>
 
         <b>${grupo.nome}</b><br>
         Valor: ${grupo.valor} Kz
@@ -328,8 +332,8 @@ async function carregarGrupos() {
   });
 
   document.getElementById('listaGrupos').innerHTML = html;
-
-  filtrar("Semanal");
+  
+  filtrar("Todos");
 }
 
 /* ENTRAR GRUPO */
@@ -363,16 +367,44 @@ async function entrarGrupo(groupId) {
 
 /* FILTRO */
 
-function filtrar(tipo) {
+async function filtrar(tipo) {
+
   const grupos = document.querySelectorAll(".grupo-card");
 
+  if (tipo === "Todos") {
+
+    const { data: meusGrupos } = await client
+      .from("group_members")
+      .select("group_id")
+      .eq("user_id", currentUser.id);
+
+    const ids = meusGrupos.map(g => String(g.group_id));
+
+    grupos.forEach(g => {
+
+      const idGrupo = g.dataset.id;
+
+      if (ids.includes(idGrupo)) {
+        g.style.display = "block";
+      } else {
+        g.style.display = "none";
+      }
+
+    });
+
+    return;
+  }
+
   grupos.forEach(g => {
-    if (tipo === "Todos" || g.dataset.tipo === tipo) {
+
+    if (g.dataset.tipo === tipo) {
       g.style.display = "block";
     } else {
       g.style.display = "none";
     }
+
   });
+
 }
 
 /* NAV */
