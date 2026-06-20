@@ -275,7 +275,7 @@ async function login() {
   document.getElementById("app").style.display = "block";
 
   document.getElementById("userEmail").innerText =
-    "👤 " + currentUser.email;
+  "👤 " + (profile.nome || currentUser.email);
 
   document.getElementById("perfilNome").innerText =
     profile.nome || "Sem nome";
@@ -484,7 +484,7 @@ function mostrarPagina(pagina) {
   document.getElementById("app").style.display = "block";
 
   document.getElementById("userEmail").innerText =
-    "👤 " + currentUser.email;
+  "👤 " + (profile.nome || currentUser.email);
 
   document.getElementById("perfilNome").innerText =
     profile.nome || "Sem nome";
