@@ -324,8 +324,12 @@ async function carregarGrupos() {
         <br><br>
 
         <button onclick="entrarGrupo(${grupo.id})">
-          Entrar
-        </button>
+  Entrar
+</button>
+
+<button onclick="sairGrupo(${grupo.id})">
+  Sair
+</button>
 
       </div>
     `;
@@ -344,6 +348,17 @@ async function entrarGrupo(groupId) {
     alert("❌ Limite do plano atingido");
     return;
   }
+
+  const { data: existe } = await client
+  .from("group_members")
+  .select("*")
+  .eq("group_id", groupId)
+  .eq("user_id", currentUser.id);
+
+if (existe.length > 0) {
+  alert("Já fazes parte deste grupo");
+  return;
+}
 
   const { error } = await client
     .from('group_members')
@@ -496,6 +511,22 @@ function mostrarPagina(pagina) {
     (profile.saldo || 0) + " Kz";
 
   await carregarGrupos();
+  }
+
+  async function sairGrupo(groupId) {
+
+  const { error } = await client
+    .from("group_members")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  alert("Saíste do grupo!");
   }
   
 verificarSessao();
