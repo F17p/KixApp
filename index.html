@@ -151,7 +151,7 @@ body{
       <h3>Grupos Kixikila</h3>
 
       <div id="tabs">
-        <button onclick="filtrar('Todos')">Todos</button>
+        <button onclick="filtrar('Meus')">Meus Grupos</button>
         <button onclick="filtrar('Semanal')">Semanal</button>
         <button onclick="filtrar('Mensal')">Mensal</button>
         <button onclick="filtrar('Trimestral')">Trimestral</button>
@@ -356,7 +356,7 @@ Sair
     `👥 ${count}/${grupo.max_membros}`;
   }
   
-  filtrar("Todos");
+  filtrar("Meus");
 }
 
 /* ENTRAR GRUPO */
@@ -405,7 +405,7 @@ async function filtrar(tipo) {
 
   const grupos = document.querySelectorAll(".grupo-card");
 
-  if (tipo === "Todos") {
+  if (tipo === "Meus") {
 
     const { data: meusGrupos } = await client
       .from("group_members")
