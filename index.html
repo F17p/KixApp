@@ -311,31 +311,50 @@ async function carregarGrupos() {
 
   grupos.forEach(grupo => {
 
-    html += `
-      <div
+   html += `
+<div
   class="grupo-card"
   data-id="${grupo.id}"
   data-tipo="${(grupo.tipo || 'semanal').toLowerCase()}"
 >
 
-        <b>${grupo.nome}</b><br>
-        Valor: ${grupo.valor} Kz
+<b>${grupo.nome}</b><br>
+Valor: ${grupo.valor} Kz
 
-        <br><br>
+<br>
 
-        <button onclick="entrarGrupo(${grupo.id})">
-  Entrar
+<span id="membros-${grupo.id}">
+Carregando membros...
+</span>
+
+<br><br>
+
+<button onclick="entrarGrupo(${grupo.id})">
+Entrar
 </button>
 
 <button onclick="sairGrupo(${grupo.id})">
-  Sair
+Sair
 </button>
 
-      </div>
-    `;
+</div>
+`;
   });
 
   document.getElementById('listaGrupos').innerHTML = html;
+
+  for (const grupo of grupos) {
+
+  const { count } = await client
+    .from("group_members")
+    .select("*", { count: "exact", head: true })
+    .eq("group_id", grupo.id);
+
+  document.getElementById(
+    `membros-${grupo.id}`
+  ).innerText =
+    `👥 ${count}/${grupo.max_membros}`;
+  }
   
   filtrar("Todos");
 }
