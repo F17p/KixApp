@@ -302,14 +302,6 @@ async function logout() {
 
 async function carregarGrupos() {
 
-  const { data: membro } = await client
-  .from("group_members")
-  .select("*")
-  .eq("group_id", grupo.id)
-  .eq("user_id", currentUser.id);
-
-const participa = membro.length > 0;
-
   const { data: grupos } = await client
     .from('groups')
     .select('*')
@@ -318,6 +310,14 @@ const participa = membro.length > 0;
   let html = '';
 
   for (const grupo of grupos) {
+
+    const { data: membro } = await client
+  .from("group_members")
+  .select("*")
+  .eq("group_id", grupo.id)
+  .eq("user_id", currentUser.id);
+
+const participa = membro.length > 0;
 
    html += `
 <div
