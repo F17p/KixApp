@@ -317,6 +317,8 @@ async function carregarGrupos() {
   .eq("group_id", grupo.id)
   .eq("user_id", currentUser.id);
 
+    const lotado = count >= grupo.max_membros;
+
 const participa = membro.length > 0;
 
    html += `
@@ -337,7 +339,13 @@ Carregando membros...
 
 <br><br>
 
-${participa
+${lotado
+  ? `
+    <div style="color:red;font-weight:bold;">
+      🔴 Grupo Lotado
+    </div>
+  `
+  : participa
   ? `
     <div style="color:green;font-weight:bold;">
       ✅ Já participa
@@ -407,6 +415,9 @@ if (existe.length > 0) {
     alert(error.message);
     return;
   }
+
+  const btn = event.target;
+btn.disabled = true;
 
   gruposUsados++;
 
@@ -522,6 +533,8 @@ function mostrarPagina(pagina) {
   }
 
     async function verificarSessao() {
+
+      document.getElementById("app").style.display = "none";
 
   const { data } = await client.auth.getSession();
 
