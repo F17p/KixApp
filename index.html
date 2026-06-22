@@ -302,6 +302,14 @@ async function logout() {
 
 async function carregarGrupos() {
 
+  const { data: membro } = await client
+  .from("group_members")
+  .select("*")
+  .eq("group_id", grupo.id)
+  .eq("user_id", currentUser.id);
+
+const participa = membro.length > 0;
+
   const { data: grupos } = await client
     .from('groups')
     .select('*')
@@ -309,7 +317,7 @@ async function carregarGrupos() {
 
   let html = '';
 
-  grupos.forEach(grupo => {
+  for (const grupo of grupos) {
 
    html += `
 <div
@@ -329,18 +337,27 @@ Carregando membros...
 
 <br><br>
 
-<button onclick="entrarGrupo(${grupo.id})">
-Entrar
-</button>
+${participa
+  ? `
+    <div style="color:green;font-weight:bold;">
+      ✅ Já participa
+    </div>
 
-<button onclick="sairGrupo(${grupo.id})">
-Sair
-</button>
+    <button onclick="sairGrupo(${grupo.id})">
+      Sair
+    </button>
+  `
+  : `
+    <button onclick="entrarGrupo(${grupo.id})">
+      Entrar
+    </button>
+  `
+}
 
 </div>
 `;
-  });
-
+  }
+  
   document.getElementById('listaGrupos').innerHTML = html;
 
   for (const grupo of grupos) {
@@ -397,6 +414,7 @@ if (existe.length > 0) {
     gruposUsados;
 
   alert("✔ Entraste no grupo!");
+  await carregarGrupos();
 }
 
 /* FILTRO */
@@ -546,6 +564,7 @@ function mostrarPagina(pagina) {
   }
 
   alert("Saíste do grupo!");
+    await carregarGrupos();
   }
   
 verificarSessao();
