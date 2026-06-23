@@ -231,8 +231,8 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
- const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
-const supabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
+  const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -244,11 +244,40 @@ window.state = {
   gruposUsados: 0
 };
 
+  function safe(fn) {
+  return async (...args) => {
+    try {
+      return await fn(...args);
+    } catch (e) {
+      console.log("ERRO:", e);
+      alert("Erro interno. Ver consola.");
+    }
+  };
+  }
+
 const limitesPlano = {
   Basic: 3,
   Pro: 10,
   Premium: 999
 };
+
+  function updateUI() {
+  if (!state.profile) return;
+
+  document.getElementById("userEmail").innerText =
+    "👤 " + (state.profile.nome || state.user.email);
+
+  document.getElementById("perfilNome").innerText =
+    state.profile.nome || "Sem nome";
+
+  document.getElementById("userSaldo").innerText =
+    (state.profile.saldo || 0) + " Kz";
+
+  document.getElementById("planoAtual").innerText = state.plano;
+  document.getElementById("gruposUsados").innerText = state.gruposUsados;
+  document.getElementById("gruposLimite").innerText =
+    limitesPlano[state.plano] || 0;
+  }
 
 /* LOGIN */
   const login = safe(async () => {
@@ -299,7 +328,7 @@ async function carregarGrupos() {
       .from("group_members")
       .select("*")
       .eq("group_id", grupo.id)
-      .eq("user_id", currentUser.id);
+      .eq("user_id", state.user.id);
 
     const { count } = await client
       .from("group_members")
@@ -491,17 +520,6 @@ async function verificarSessao() {
     document.getElementById("app").style.display = "none";
   }
                 }
-
-  function safe(fn) {
-  return async (...args) => {
-    try {
-      return await fn(...args);
-    } catch (e) {
-      console.log("ERRO:", e);
-      alert("Erro interno. Ver consola.");
-    }
-  };
-  }
 
   function updateUI() {
   if (!state.profile) return;
