@@ -231,20 +231,18 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  console.log("KixApp JS carregou");
-
-  window.addEventListener("error", function(e) {
-  console.log("ERRO CAPTURADO:", e.message);
-});
-  
-const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
+ const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIs...";
 
 const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-let currentUser = null;
-let planoAtual = "Basic";
-let gruposUsados = 0;
+// estado global seguro
+window.state = {
+  user: null,
+  profile: null,
+  plano: "Basic",
+  gruposUsados: 0
+};
 
 const limitesPlano = {
   Basic: 3,
@@ -253,42 +251,39 @@ const limitesPlano = {
 };
 
 /* LOGIN */
-  async function login() {
-  try {
+  const login = safe(async () => {
 
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
+  const email = document.getElementById("email").value;
+  const password = document.getElementById("password").value;
 
-    const { data, error } = await client.auth.signInWithPassword({
-      email,
-      password
-    });
+  const { data, error } = await client.auth.signInWithPassword({
+    email,
+    password
+  });
 
-    if (error) return alert(error.message);
+  if (error) return alert(error.message);
 
-    currentUser = data.user;
+  state.user = data.user;
 
-    const { data: profile } = await client
-      .from("profiles")
-      .select("*")
-      .eq("id", currentUser.id)
-      .single();
+  const { data: profile } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", state.user.id)
+    .single();
 
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("app").style.display = "block";
+  state.profile = profile;
+  state.plano = profile.plano || "Basic";
+  state.gruposUsados = profile.grupos_usados || 0;
 
-    planoAtual = profile.plano || "Basic";
-    gruposUsados = profile.grupos_usados || 0;
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
 
-    await carregarGrupos();
-    await carregarHistorico();
+  updateUI();
 
-  } catch (err) {
-    console.log("LOGIN ERROR:", err);
-    alert("Erro no login");
-  }
-  }
-
+  await carregarGrupos();
+  await carregarHistorico();
+});
+  
 /* GRUPOS */
 async function carregarGrupos() {
   const { data: grupos } = await client
@@ -496,6 +491,55 @@ async function verificarSessao() {
     document.getElementById("app").style.display = "none";
   }
                 }
+
+  function safe(fn) {
+  return async (...args) => {
+    try {
+      return await fn(...args);
+    } catch (e) {
+      console.log("ERRO:", e);
+      alert("Erro interno. Ver consola.");
+    }
+  };
+  }
+
+  function updateUI() {
+  if (!state.profile) return;
+
+  document.getElementById("userEmail").innerText =
+    "👤 " + (state.profile.nome || state.user.email);
+
+  document.getElementById("perfilNome").innerText =
+    state.profile.nome || "Sem nome";
+
+  document.getElementById("userSaldo").innerText =
+    (state.profile.saldo || 0) + " Kz";
+
+  document.getElementById("planoAtual").innerText = state.plano;
+  document.getElementById("gruposUsados").innerText = state.gruposUsados;
+  document.getElementById("gruposLimite").innerText =
+    limitesPlano[state.plano] || 0;
+  }
+
+  const depositarValor = safe(async () => {
+
+  const valor = Number(document.getElementById("valorDeposito").value);
+
+  if (!valor || valor <= 0) return alert("Valor inválido");
+
+  const novoSaldo = Number(state.profile.saldo || 0) + valor;
+
+  await client
+    .from("profiles")
+    .update({ saldo: novoSaldo })
+    .eq("id", state.user.id);
+
+  state.profile.saldo = novoSaldo;
+
+  updateUI();
+
+  alert("Depósito feito!");
+});
 
 verificarSessao();
 
