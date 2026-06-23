@@ -231,6 +231,8 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
+  console.log("KixApp JS carregou");
+  
 const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
@@ -434,31 +436,61 @@ async function carregarHistorico() {
 /* SESSION */
 async function verificarSessao() {
 
-  const { data } = await client.auth.getSession();
+  try {
+    const { data, error } = await client.auth.getSession();
 
-  if (!data.session) {
+    if (error) {
+      console.log(error);
+    }
+
+    if (!data || !data.session) {
+      document.getElementById("loginBox").style.display = "block";
+      document.getElementById("app").style.display = "none";
+      return;
+    }
+
+    currentUser = data.session.user;
+
+    const { data: profile } = await client
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .single();
+
+    if (!profile) {
+      alert("Perfil não encontrado no Supabase");
+      return;
+    }
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    document.getElementById("userEmail").innerText =
+      "👤 " + (profile.nome || currentUser.email);
+
+    document.getElementById("perfilNome").innerText =
+      profile.nome || "Sem nome";
+
+    document.getElementById("userSaldo").innerText =
+      (profile.saldo || 0) + " Kz";
+
+    planoAtual = profile.plano || "Basic";
+    gruposUsados = profile.grupos_usados || 0;
+
+    document.getElementById("planoAtual").innerText = planoAtual;
+    document.getElementById("gruposUsados").innerText = gruposUsados;
+    document.getElementById("gruposLimite").innerText =
+      limitesPlano[planoAtual];
+
+    await carregarGrupos();
+    await carregarHistorico();
+
+  } catch (err) {
+    console.log("ERRO SESSÃO:", err);
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("app").style.display = "none";
-    return;
   }
-
-  currentUser = data.session.user;
-
-  const { data: profile } = await client
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
-
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("app").style.display = "block";
-
-  planoAtual = profile.plano || "Basic";
-  gruposUsados = profile.grupos_usados || 0;
-
-  await carregarGrupos();
-  await carregarHistorico();
-}
+                }
 
 verificarSessao();
 </script>
