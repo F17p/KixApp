@@ -287,6 +287,9 @@ async function login() {
   document.getElementById("userSaldo").innerText =
     (profile.saldo || 0) + " Kz";
 
+  document.getElementById("loginBox").style.display = "none";
+document.getElementById("app").style.display = "block";
+
   await carregarGrupos();
   await carregarHistorico();
 }
@@ -565,25 +568,32 @@ function mostrarPagina(pagina) {
 
     async function verificarSessao() {
 
-      document.getElementById("app").style.display = "none";
-
   const { data } = await client.auth.getSession();
 
-  if (!data.session) return;
+  if (!data.session) {
+    document.getElementById("loginBox").style.display = "block";
+    document.getElementById("app").style.display = "none";
+    return;
+  }
 
   currentUser = data.session.user;
 
-  const { data: profile } = await client
+  const { data: profile, error } = await client
     .from('profiles')
     .select('*')
     .eq('id', currentUser.id)
     .single();
 
+  if (error) {
+    console.log(error);
+    return;
+  }
+
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
 
   document.getElementById("userEmail").innerText =
-  "👤 " + (profile.nome || currentUser.email);
+    "👤 " + (profile.nome || currentUser.email);
 
   document.getElementById("perfilNome").innerText =
     profile.nome || "Sem nome";
@@ -591,10 +601,16 @@ function mostrarPagina(pagina) {
   document.getElementById("userSaldo").innerText =
     (profile.saldo || 0) + " Kz";
 
-  await carregarGrupos();
+  planoAtual = profile.plano || "Basic";
+  gruposUsados = profile.grupos_usados || 0;
 
-      await carregarHistorico();
-  }
+  document.getElementById("planoAtual").innerText = planoAtual;
+  document.getElementById("gruposUsados").innerText = gruposUsados;
+  document.getElementById("gruposLimite").innerText = limitesPlano[planoAtual];
+
+  await carregarGrupos();
+  await carregarHistorico();
+    }
 
   async function sairGrupo(groupId) {
 
