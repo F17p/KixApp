@@ -232,6 +232,10 @@ body{
 
 <script>
   console.log("KixApp JS carregou");
+
+  window.addEventListener("error", function(e) {
+  console.log("ERRO CAPTURADO:", e.message);
+});
   
 const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
@@ -249,40 +253,41 @@ const limitesPlano = {
 };
 
 /* LOGIN */
-async function login() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+  async function login() {
+  try {
 
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password
-  });
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
 
-  if (error) return alert(error.message);
+    const { data, error } = await client.auth.signInWithPassword({
+      email,
+      password
+    });
 
-  currentUser = data.user;
+    if (error) return alert(error.message);
 
-  const { data: profile } = await client
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
+    currentUser = data.user;
 
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("app").style.display = "block";
+    const { data: profile } = await client
+      .from("profiles")
+      .select("*")
+      .eq("id", currentUser.id)
+      .single();
 
-  planoAtual = profile.plano || "Basic";
-  gruposUsados = profile.grupos_usados || 0;
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
 
-  document.getElementById("userEmail").innerText =
-    "👤 " + (profile.nome || currentUser.email);
+    planoAtual = profile.plano || "Basic";
+    gruposUsados = profile.grupos_usados || 0;
 
-  document.getElementById("perfilNome").innerText = profile.nome || "Sem nome";
-  document.getElementById("userSaldo").innerText = (profile.saldo || 0) + " Kz";
+    await carregarGrupos();
+    await carregarHistorico();
 
-  await carregarGrupos();
-  await carregarHistorico();
-}
+  } catch (err) {
+    console.log("LOGIN ERROR:", err);
+    alert("Erro no login");
+  }
+  }
 
 /* GRUPOS */
 async function carregarGrupos() {
@@ -493,4 +498,14 @@ async function verificarSessao() {
                 }
 
 verificarSessao();
+
+  window.login = login;
+window.signup = signup;
+window.logout = logout;
+window.entrarGrupo = entrarGrupo;
+window.sairGrupo = sairGrupo;
+window.depositarValor = depositarValor;
+window.salvarNome = salvarNome;
+window.mostrarPagina = mostrarPagina;
+window.filtrar = filtrar;
 </script>
