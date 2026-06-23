@@ -234,7 +234,13 @@ body{
   const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+});
 
 // estado global seguro
 window.state = {
@@ -465,15 +471,15 @@ async function carregarHistorico() {
 /* SESSION */
   async function verificarSessao() {
 
-  const { data } = await client.auth.getSession();
+  const { data: { session } } = await client.auth.getSession();
 
-  if (!data.session) {
+  if (!session) {
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("app").style.display = "none";
     return;
   }
 
-  state.user = data.session.user;
+  state.user = session.user;
 
   const { data: profile } = await client
     .from("profiles")
@@ -550,6 +556,28 @@ async function carregarHistorico() {
   document.getElementById(alvo).style.display = "block";
   }
 
+  function filtrar(tipo) {
+
+  const grupos = document.querySelectorAll(".grupo-card");
+
+  grupos.forEach(g => {
+
+    const grupoTipo = (g.dataset.tipo || "").toLowerCase();
+    const filtro = tipo.toLowerCase();
+
+    if (filtro === "meus") {
+      g.style.display = "block";
+      return;
+    }
+
+    if (grupoTipo === filtro) {
+      g.style.display = "block";
+    } else {
+      g.style.display = "none";
+    }
+  });
+  }
+
   window.login = login;
 window.signup = signup;
 window.logout = logout;
@@ -560,6 +588,9 @@ window.salvarNome = salvarNome;
 window.mostrarPagina = mostrarPagina;
 window.filtrar = filtrar;
   window.addEventListener("load", () => {
+  verificarSessao();
+});
+  window.addEventListener("DOMContentLoaded", () => {
   verificarSessao();
 });
 </script>
