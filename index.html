@@ -231,19 +231,14 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co"; 
+const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
-
-  planoAtual = profile.plano || "Basic";
-gruposUsados = profile.grupos_usados || 0;
-
-document.getElementById("planoAtual").innerText = planoAtual;
-document.getElementById("gruposUsados").innerText = gruposUsados;
-document.getElementById("gruposLimite").innerText = limitesPlano[planoAtual];
+let planoAtual = "Basic";
+let gruposUsados = 0;
 
 const limitesPlano = {
   Basic: 3,
@@ -251,8 +246,7 @@ const limitesPlano = {
   Premium: 999
 };
 
-/* LOGIN / SIGNUP / LOGOUT (igual ao teu) */
-
+/* LOGIN */
 async function login() {
   const email = document.getElementById("email").value;
   const password = document.getElementById("password").value;
@@ -262,311 +256,183 @@ async function login() {
     password
   });
 
-  if (error) {
-    alert(error.message);
-    return;
-  }
+  if (error) return alert(error.message);
 
   currentUser = data.user;
 
   const { data: profile } = await client
-    .from('profiles')
-    .select('*')
-    .eq('id', currentUser.id)
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
     .single();
 
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
 
+  planoAtual = profile.plano || "Basic";
+  gruposUsados = profile.grupos_usados || 0;
+
   document.getElementById("userEmail").innerText =
-  "👤 " + (profile.nome || currentUser.email);
+    "👤 " + (profile.nome || currentUser.email);
 
-  document.getElementById("perfilNome").innerText =
-    profile.nome || "Sem nome";
-
-  document.getElementById("userSaldo").innerText =
-    (profile.saldo || 0) + " Kz";
-
-  document.getElementById("loginBox").style.display = "none";
-document.getElementById("app").style.display = "block";
+  document.getElementById("perfilNome").innerText = profile.nome || "Sem nome";
+  document.getElementById("userSaldo").innerText = (profile.saldo || 0) + " Kz";
 
   await carregarGrupos();
   await carregarHistorico();
 }
 
-async function signup() {
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
-
-  await client.auth.signUp({ email, password });
-}
-
-async function logout() {
-  await client.auth.signOut();
-  location.reload();
-}
-
 /* GRUPOS */
-
 async function carregarGrupos() {
-
   const { data: grupos } = await client
-    .from('groups')
-    .select('*')
-    .order('valor');
+    .from("groups")
+    .select("*")
+    .order("valor");
 
-  let html = '';
+  let html = "";
 
   for (const grupo of grupos) {
 
     const { data: membro } = await client
-  .from("group_members")
-  .select("*")
-  .eq("group_id", grupo.id)
-  .eq("user_id", currentUser.id);
+      .from("group_members")
+      .select("*")
+      .eq("group_id", grupo.id)
+      .eq("user_id", currentUser.id);
+
+    const { count } = await client
+      .from("group_members")
+      .select("*", { count: "exact", head: true })
+      .eq("group_id", grupo.id);
 
     const lotado = count >= grupo.max_membros;
+    const participa = membro.length > 0;
 
-const participa = membro.length > 0;
+    html += `
+      <div class="grupo-card" data-id="${grupo.id}" data-tipo="${(grupo.tipo || 'semanal').toLowerCase()}">
+        <b>${grupo.nome}</b><br>
+        Valor: ${grupo.valor} Kz<br>
+        <span id="membros-${grupo.id}">👥 ${count}/${grupo.max_membros}</span><br><br>
 
-   html += `
-<div
-  class="grupo-card"
-  data-id="${grupo.id}"
-  data-tipo="${(grupo.tipo || 'semanal').toLowerCase()}"
->
-
-<b>${grupo.nome}</b><br>
-Valor: ${grupo.valor} Kz
-
-<br>
-
-<span id="membros-${grupo.id}">
-Carregando membros...
-</span>
-
-<br><br>
-
-${lotado
-  ? `
-    <div style="color:red;font-weight:bold;">
-      🔴 Grupo Lotado
-    </div>
-  `
-  : participa
-  ? `
-    <div style="color:green;font-weight:bold;">
-      ✅ Já participa
-    </div>
-
-    <button onclick="sairGrupo(${grupo.id})">
-      Sair
-    </button>
-  `
-  : `
-    <button onclick="entrarGrupo(${grupo.id})">
-      Entrar
-    </button>
-  `
-}
-
-</div>
-`;
+        ${
+          lotado
+            ? `<div style="color:red;font-weight:bold;">🔴 Grupo Lotado</div>`
+            : participa
+              ? `<div style="color:green;font-weight:bold;">✅ Já participa</div>
+                 <button onclick="sairGrupo(${grupo.id})">Sair</button>`
+              : `<button onclick="entrarGrupo(${grupo.id})">Entrar</button>`
+        }
+      </div>
+    `;
   }
-  
-  document.getElementById('listaGrupos').innerHTML = html;
 
-  for (const grupo of grupos) {
-
-  const { count } = await client
-    .from("group_members")
-    .select("*", { count: "exact", head: true })
-    .eq("group_id", grupo.id);
-
-  document.getElementById(
-    `membros-${grupo.id}`
-  ).innerText =
-    `👥 ${count}/${grupo.max_membros}`;
-  }
-  
-  filtrar("Meus");
+  document.getElementById("listaGrupos").innerHTML = html;
 }
 
 /* ENTRAR GRUPO */
-
 async function entrarGrupo(groupId) {
 
   const limite = limitesPlano[planoAtual] || 0;
 
-if (gruposUsados >= limite) {
-  alert("❌ Limite do plano atingido");
-  return;
-} {
+  if (gruposUsados >= limite) {
+    return alert("❌ Limite do plano atingido");
+  }
 
   const { data: existe } = await client
-  .from("group_members")
-  .select("*")
-  .eq("group_id", groupId)
-  .eq("user_id", currentUser.id);
+    .from("group_members")
+    .select("*")
+    .eq("group_id", groupId)
+    .eq("user_id", currentUser.id);
 
-if (existe.length > 0) {
-  alert("Já fazes parte deste grupo");
-  return;
-}
-
-  const { error } = await client
-    .from('group_members')
-    .insert({
-      group_id: groupId,
-      user_id: currentUser.id
-    });
-
-  if (error) {
-    alert(error.message);
-    return;
+  if (existe.length > 0) {
+    return alert("Já fazes parte deste grupo");
   }
 
-  await client.from("transactions").insert({
-  user_id: currentUser.id,
-  tipo: "entrada_grupo",
-  valor: 0
-});
+  const { error } = await client
+    .from("group_members")
+    .insert({ group_id: groupId, user_id: currentUser.id });
 
-  const btn = event.target;
-btn.disabled = true;
+  if (error) return alert(error.message);
 
   gruposUsados++;
 
-  document.getElementById("gruposUsados").innerText =
-    gruposUsados;
+  await client
+    .from("profiles")
+    .update({ grupos_usados: gruposUsados })
+    .eq("id", currentUser.id);
 
-  alert("✔ Entraste no grupo!");
-
-  gruposUsados++;
-
-await client
-  .from("profiles")
-  .update({ grupos_usados: gruposUsados })
-  .eq("id", currentUser.id);
-  await carregarGrupos();
-}
-
-/* FILTRO */
-
-async function filtrar(tipo) {
-
-  const grupos = document.querySelectorAll(".grupo-card");
-
-  if (tipo === "Meus") {
-
-    const { data: meusGrupos } = await client
-      .from("group_members")
-      .select("group_id")
-      .eq("user_id", currentUser.id);
-
-    const ids = meusGrupos.map(g => String(g.group_id));
-
-    grupos.forEach(g => {
-
-      const idGrupo = g.dataset.id;
-
-      if (ids.includes(idGrupo)) {
-        g.style.display = "block";
-      } else {
-        g.style.display = "none";
-      }
-
-    });
-
-    return;
-  }
-
-  grupos.forEach(g => {
-
-    if (
-  g.dataset.tipo.toLowerCase() ===
-  tipo.toLowerCase()
-) {
-      g.style.display = "block";
-    } else {
-      g.style.display = "none";
-    }
-
-  });
-
-}
-
-/* NAV */
-
-function mostrarPagina(pagina) {
-
-  document.getElementById("paginaInicio").style.display = "none";
-  document.getElementById("paginaGrupos").style.display = "none";
-  document.getElementById("paginaHistorico").style.display = "none";
-  document.getElementById("paginaPerfil").style.display = "none";
-
-  document.getElementById("pagina" + pagina.charAt(0).toUpperCase() + pagina.slice(1)).style.display = "block";
-}
-
-  async function depositarValor() {
-  const valor = Number(document.getElementById("valorDeposito").value);
-
-  if (!valor || valor <= 0) {
-    alert("Valor inválido");
-    return;
-  }
-
-  const { data: profile } = await client
-    .from('profiles')
-    .select('*')
-    .eq('id', currentUser.id)
-    .single();
-
-  const saldoAtual = Number(profile.saldo || 0);
-  const novoSaldo = saldoAtual + valor;
-
-  // atualizar saldo
-  const { error } = await client
-    .from('profiles')
-    .update({ saldo: novoSaldo })
-    .eq('id', currentUser.id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  // 📌 REGISTAR HISTÓRICO
   await client.from("transactions").insert({
     user_id: currentUser.id,
-    tipo: "deposito",
-    valor: valor
+    tipo: "entrada_grupo",
+    valor: 0
   });
 
-  document.getElementById("userSaldo").innerText = novoSaldo + " Kz";
+  document.getElementById("gruposUsados").innerText = gruposUsados;
 
-  alert("Depósito feito com sucesso!");
-  }
+  await carregarGrupos();
+  alert("✔ Entraste no grupo!");
+}
 
-  async function salvarNome() {
-
-  const nome = document.getElementById("inputNome").value;
+/* SAIR GRUPO */
+async function sairGrupo(groupId) {
 
   const { error } = await client
-    .from('profiles')
-    .update({ nome })
-    .eq('id', currentUser.id);
+    .from("group_members")
+    .delete()
+    .eq("group_id", groupId)
+    .eq("user_id", currentUser.id);
 
-  if (error) {
-    alert(error.message);
-    return;
+  if (error) return alert(error.message);
+
+  gruposUsados = Math.max(0, gruposUsados - 1);
+
+  await client
+    .from("profiles")
+    .update({ grupos_usados: gruposUsados })
+    .eq("id", currentUser.id);
+
+  await client.from("transactions").insert({
+    user_id: currentUser.id,
+    tipo: "saida_grupo",
+    valor: 0
+  });
+
+  document.getElementById("gruposUsados").innerText = gruposUsados;
+
+  await carregarGrupos();
+  alert("Saíste do grupo!");
+}
+
+/* HISTÓRICO */
+async function carregarHistorico() {
+
+  const { data } = await client
+    .from("transactions")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  let html = "";
+
+  for (const t of data) {
+    let cor = "black";
+    if (t.tipo === "deposito") cor = "green";
+    if (t.tipo === "saida_grupo") cor = "red";
+
+    html += `
+      <div class="card">
+        <b style="color:${cor}">${t.tipo}</b><br>
+        ${t.valor} Kz<br>
+        <small>${new Date(t.created_at).toLocaleString()}</small>
+      </div>
+    `;
   }
 
-  document.getElementById("perfilNome").innerText = nome;
-  alert("Nome atualizado!");
-  }
+  document.getElementById("historico").innerHTML =
+    html || "Nenhuma transação.";
+}
 
-    async function verificarSessao() {
+/* SESSION */
+async function verificarSessao() {
 
   const { data } = await client.auth.getSession();
 
@@ -578,103 +444,21 @@ function mostrarPagina(pagina) {
 
   currentUser = data.session.user;
 
-  const { data: profile, error } = await client
-    .from('profiles')
-    .select('*')
-    .eq('id', currentUser.id)
+  const { data: profile } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
     .single();
-
-  if (error) {
-    console.log(error);
-    return;
-  }
 
   document.getElementById("loginBox").style.display = "none";
   document.getElementById("app").style.display = "block";
 
-  document.getElementById("userEmail").innerText =
-    "👤 " + (profile.nome || currentUser.email);
-
-  document.getElementById("perfilNome").innerText =
-    profile.nome || "Sem nome";
-
-  document.getElementById("userSaldo").innerText =
-    (profile.saldo || 0) + " Kz";
-
   planoAtual = profile.plano || "Basic";
   gruposUsados = profile.grupos_usados || 0;
 
-  document.getElementById("planoAtual").innerText = planoAtual;
-  document.getElementById("gruposUsados").innerText = gruposUsados;
-  document.getElementById("gruposLimite").innerText = limitesPlano[planoAtual];
-
   await carregarGrupos();
   await carregarHistorico();
-    }
+}
 
-  async function sairGrupo(groupId) {
-
-  const { error } = await client
-    .from("group_members")
-    .delete()
-    .eq("group_id", groupId)
-    .eq("user_id", currentUser.id);
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-    await client.from("transactions").insert({
-  user_id: currentUser.id,
-  tipo: "saida_grupo",
-  valor: 0
-});
-
-    gruposUsados = Math.max(0, gruposUsados - 1);
-
-await client
-  .from("profiles")
-  .update({ grupos_usados: gruposUsados })
-  .eq("id", currentUser.id);
-
-  alert("Saíste do grupo!");
-    await carregarGrupos();
-  }
-
-  async function carregarHistorico() {
-
-  const { data } = await client
-    .from("transactions")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
-
-  let html = "";
-
-  for (const t of data) {
-
-    let cor = "black";
-    if (t.tipo === "deposito") cor = "green";
-    if (t.tipo === "saida_grupo") cor = "red";
-
-    html += `
-      <div class="card">
-        <b style="color:${cor}">
-          ${t.tipo}
-        </b><br>
-        ${t.valor} Kz<br>
-        <small>${new Date(t.created_at).toLocaleString()}</small>
-      </div>
-    `;
-  }
-
-  document.getElementById("historico").innerHTML =
-    html || "Nenhuma transação.";
-  }
-  
 verificarSessao();
 </script>
-
-</body>
-</html>
