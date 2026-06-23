@@ -238,8 +238,12 @@ const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUser = null;
 
-  let planoAtual = "Basic";
-let gruposUsados = 0;
+  planoAtual = profile.plano || "Basic";
+gruposUsados = profile.grupos_usados || 0;
+
+document.getElementById("planoAtual").innerText = planoAtual;
+document.getElementById("gruposUsados").innerText = gruposUsados;
+document.getElementById("gruposLimite").innerText = limitesPlano[planoAtual];
 
 const limitesPlano = {
   Basic: 3,
@@ -389,10 +393,12 @@ ${lotado
 
 async function entrarGrupo(groupId) {
 
-  if (gruposUsados >= limitesPlano[planoAtual]) {
-    alert("❌ Limite do plano atingido");
-    return;
-  }
+  const limite = limitesPlano[planoAtual] || 0;
+
+if (gruposUsados >= limite) {
+  alert("❌ Limite do plano atingido");
+  return;
+} {
 
   const { data: existe } = await client
   .from("group_members")
@@ -432,6 +438,13 @@ btn.disabled = true;
     gruposUsados;
 
   alert("✔ Entraste no grupo!");
+
+  gruposUsados++;
+
+await client
+  .from("profiles")
+  .update({ grupos_usados: gruposUsados })
+  .eq("id", currentUser.id);
   await carregarGrupos();
 }
 
@@ -601,6 +614,13 @@ function mostrarPagina(pagina) {
   tipo: "saida_grupo",
   valor: 0
 });
+
+    gruposUsados = Math.max(0, gruposUsados - 1);
+
+await client
+  .from("profiles")
+  .update({ grupos_usados: gruposUsados })
+  .eq("id", currentUser.id);
 
   alert("Saíste do grupo!");
     await carregarGrupos();
