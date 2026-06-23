@@ -284,6 +284,7 @@ async function login() {
     (profile.saldo || 0) + " Kz";
 
   await carregarGrupos();
+  await carregarHistorico();
 }
 
 async function signup() {
@@ -416,6 +417,12 @@ if (existe.length > 0) {
     return;
   }
 
+  await client.from("transactions").insert({
+  user_id: currentUser.id,
+  tipo: "entrada_grupo",
+  valor: 0
+});
+
   const btn = event.target;
 btn.disabled = true;
 
@@ -485,10 +492,11 @@ function mostrarPagina(pagina) {
   document.getElementById("pagina" + pagina.charAt(0).toUpperCase() + pagina.slice(1)).style.display = "block";
 }
 
-  async function depositar(valor) {
+  async function depositarValor() {
+  const valor = Number(document.getElementById("valorDeposito").value);
 
-  if (!currentUser) {
-    alert("Utilizador não autenticado");
+  if (!valor || valor <= 0) {
+    alert("Valor inválido");
     return;
   }
 
@@ -499,8 +507,9 @@ function mostrarPagina(pagina) {
     .single();
 
   const saldoAtual = Number(profile.saldo || 0);
-  const novoSaldo = saldoAtual + Number(valor);
+  const novoSaldo = saldoAtual + valor;
 
+  // atualizar saldo
   const { error } = await client
     .from('profiles')
     .update({ saldo: novoSaldo })
@@ -511,7 +520,16 @@ function mostrarPagina(pagina) {
     return;
   }
 
+  // 📌 REGISTAR HISTÓRICO
+  await client.from("transactions").insert({
+    user_id: currentUser.id,
+    tipo: "deposito",
+    valor: valor
+  });
+
   document.getElementById("userSaldo").innerText = novoSaldo + " Kz";
+
+  alert("Depósito feito com sucesso!");
   }
 
   async function salvarNome() {
@@ -561,6 +579,8 @@ function mostrarPagina(pagina) {
     (profile.saldo || 0) + " Kz";
 
   await carregarGrupos();
+
+      await carregarHistorico();
   }
 
   async function sairGrupo(groupId) {
@@ -576,8 +596,45 @@ function mostrarPagina(pagina) {
     return;
   }
 
+    await client.from("transactions").insert({
+  user_id: currentUser.id,
+  tipo: "saida_grupo",
+  valor: 0
+});
+
   alert("Saíste do grupo!");
     await carregarGrupos();
+  }
+
+  async function carregarHistorico() {
+
+  const { data } = await client
+    .from("transactions")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .order("created_at", { ascending: false });
+
+  let html = "";
+
+  for (const t of data) {
+
+    let cor = "black";
+    if (t.tipo === "deposito") cor = "green";
+    if (t.tipo === "saida_grupo") cor = "red";
+
+    html += `
+      <div class="card">
+        <b style="color:${cor}">
+          ${t.tipo}
+        </b><br>
+        ${t.valor} Kz<br>
+        <small>${new Date(t.created_at).toLocaleString()}</small>
+      </div>
+    `;
+  }
+
+  document.getElementById("historico").innerHTML =
+    html || "Nenhuma transação.";
   }
   
 verificarSessao();
