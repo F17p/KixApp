@@ -314,9 +314,7 @@ const limitesPlano = {
   document.getElementById("app").style.display = "block";
 
   updateUI();
-
-  await carregarGrupos();
-  await carregarHistorico();
+    carregarDadosApp();
 });
   
 /* GRUPOS */
@@ -495,9 +493,7 @@ async function carregarHistorico() {
   document.getElementById("app").style.display = "block";
 
   updateUI();
-
-  await carregarGrupos();
-  await carregarHistorico();
+    carregarDadosApp();
   }
 
   function updateUI() {
@@ -576,6 +572,11 @@ async function carregarHistorico() {
       g.style.display = "none";
     }
   });
+  }
+
+  function carregarDadosApp() {
+  carregarGrupos();
+  carregarHistorico();
   }
 
   window.login = login;
