@@ -463,63 +463,36 @@ async function carregarHistorico() {
 }
 
 /* SESSION */
-async function verificarSessao() {
+  async function verificarSessao() {
 
-  try {
-    const { data, error } = await client.auth.getSession();
+  const { data } = await client.auth.getSession();
 
-    if (error) {
-      console.log(error);
-    }
-
-    if (!data || !data.session) {
-      document.getElementById("loginBox").style.display = "block";
-      document.getElementById("app").style.display = "none";
-      return;
-    }
-
-    currentUser = data.session.user;
-
-    const { data: profile } = await client
-      .from("profiles")
-      .select("*")
-      .eq("id", currentUser.id)
-      .single();
-
-    if (!profile) {
-      alert("Perfil não encontrado no Supabase");
-      return;
-    }
-
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    document.getElementById("userEmail").innerText =
-      "👤 " + (profile.nome || currentUser.email);
-
-    document.getElementById("perfilNome").innerText =
-      profile.nome || "Sem nome";
-
-    document.getElementById("userSaldo").innerText =
-      (profile.saldo || 0) + " Kz";
-
-    planoAtual = profile.plano || "Basic";
-    gruposUsados = profile.grupos_usados || 0;
-
-    document.getElementById("planoAtual").innerText = planoAtual;
-    document.getElementById("gruposUsados").innerText = gruposUsados;
-    document.getElementById("gruposLimite").innerText =
-      limitesPlano[planoAtual];
-
-    await carregarGrupos();
-    await carregarHistorico();
-
-  } catch (err) {
-    console.log("ERRO SESSÃO:", err);
+  if (!data.session) {
     document.getElementById("loginBox").style.display = "block";
     document.getElementById("app").style.display = "none";
+    return;
   }
-                }
+
+  state.user = data.session.user;
+
+  const { data: profile } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", state.user.id)
+    .single();
+
+  state.profile = profile;
+  state.plano = profile.plano || "Basic";
+  state.gruposUsados = profile.grupos_usados || 0;
+
+  document.getElementById("loginBox").style.display = "none";
+  document.getElementById("app").style.display = "block";
+
+  updateUI();
+
+  await carregarGrupos();
+  await carregarHistorico();
+  }
 
   function updateUI() {
   if (!state.profile) return;
@@ -559,7 +532,23 @@ async function verificarSessao() {
   alert("Depósito feito!");
 });
 
-verificarSessao();
+  function mostrarPagina(pagina) {
+
+  const paginas = [
+    "paginaInicio",
+    "paginaGrupos",
+    "paginaHistorico",
+    "paginaPerfil"
+  ];
+
+  paginas.forEach(p => {
+    document.getElementById(p).style.display = "none";
+  });
+
+  const alvo = "pagina" + pagina.charAt(0).toUpperCase() + pagina.slice(1);
+
+  document.getElementById(alvo).style.display = "block";
+  }
 
   window.login = login;
 window.signup = signup;
@@ -570,4 +559,7 @@ window.depositarValor = depositarValor;
 window.salvarNome = salvarNome;
 window.mostrarPagina = mostrarPagina;
 window.filtrar = filtrar;
+  window.addEventListener("load", () => {
+  verificarSessao();
+});
 </script>
