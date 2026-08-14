@@ -459,13 +459,18 @@ body{
   const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
+const client = supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: false,
+      storage: window.localStorage
+    }
   }
-});
+);
 
 // estado global seguro
 window.state = {
@@ -524,6 +529,7 @@ const limitesPlano = {
   if (error) return alert(error.message);
 
   state.user = data.user;
+    currentUser = data.user;
 
   const { data: profile } = await client
     .from("profiles")
@@ -694,31 +700,116 @@ async function carregarHistorico() {
 /* SESSION */
   async function verificarSessao() {
 
-  const { data: { session } } = await client.auth.getSession();
+  try {
 
-  if (!session) {
-    document.getElementById("loginBox").style.display = "block";
-    document.getElementById("app").style.display = "none";
-    return;
-  }
+    const {
+      data: {
+        session
+      },
+      error
+    } = await client.auth.getSession();
 
-  state.user = session.user;
+    if (error) {
+      console.error("Erro ao recuperar sessão:", error);
+      return;
+    }
 
-  const { data: profile } = await client
-    .from("profiles")
-    .select("*")
-    .eq("id", state.user.id)
-    .single();
+    /*
+     * NÃO existe sessão.
+     * Mostrar Login.
+     */
 
-  state.profile = profile;
-  state.plano = profile.plano || "Basic";
-  state.gruposUsados = profile.grupos_usados || 0;
+    if (!session) {
 
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("app").style.display = "block";
+      currentUser = null;
+      state.user = null;
+      state.profile = null;
 
-  updateUI();
+      document.getElementById("loginBox").style.display = "block";
+      document.getElementById("app").style.display = "none";
+
+      return;
+    }
+
+    /*
+     * Existe sessão.
+     * Recuperar utilizador.
+     */
+
+    currentUser = session.user;
+    state.user = session.user;
+
+    /*
+     * Recuperar perfil.
+     */
+
+    const {
+      data: profile,
+      error: profileError
+    } = await client
+      .from("profiles")
+      .select("*")
+      .eq("id", session.user.id)
+      .single();
+
+    if (profileError) {
+
+      console.error(
+        "Erro ao carregar perfil:",
+        profileError
+      );
+
+      /*
+       * NÃO expulsar o utilizador para o Login.
+       * A sessão continua válida.
+       */
+
+      state.profile = {
+        nome: "",
+        saldo: 0,
+        plano: "Basic",
+        grupos_usados: 0
+      };
+
+    } else {
+
+      state.profile = profile;
+
+    }
+
+    /*
+     * Atualizar estado
+     */
+
+    state.plano =
+      state.profile.plano || "Basic";
+
+    state.gruposUsados =
+      Number(state.profile.grupos_usados || 0);
+
+    /*
+     * Mostrar APP
+     */
+
+    document.getElementById("loginBox").style.display = "none";
+    document.getElementById("app").style.display = "block";
+
+    updateUI();
+
+    /*
+     * Carregar dados
+     */
+
     carregarDadosApp();
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao recuperar sessão:",
+      erro
+    );
+
+  }
   }
 
   function updateUI() {
@@ -1215,11 +1306,6 @@ window.depositarValor = depositarValor;
 window.salvarNome = salvarNome;
 window.mostrarPagina = mostrarPagina;
 window.filtrar = filtrar;
-
-
-window.addEventListener("load", () => {
-  verificarSessao();
-});
 
 
 window.addEventListener("DOMContentLoaded", () => {
