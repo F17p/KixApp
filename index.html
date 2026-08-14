@@ -456,859 +456,1950 @@ body{
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <script>
-  const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
-const client = supabase.createClient(
+/* =========================================================
+   KIXAPP
+   BASE DO JAVASCRIPT
+   ========================================================= */
+
+
+/* =========================================================
+   1. CONFIGURAÇÃO SUPABASE
+   ========================================================= */
+
+/*
+  IMPORTANTE:
+  Mantém aqui os mesmos valores que já usavas no teu projeto.
+
+  Não vou inventar a URL nem a ANON KEY.
+*/
+
+const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co"
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";  
+
+const client = window.supabase.createClient(
   SUPABASE_URL,
-  SUPABASE_ANON_KEY,
-  {
-    auth: {
-      persistSession: true,
-      autoRefreshToken: true,
-      detectSessionInUrl: false,
-      storage: window.localStorage
-    }
-  }
+  SUPABASE_ANON_KEY
 );
 
-// estado global seguro
-window.state = {
+
+/* =========================================================
+   2. ESTADO GLOBAL DA APLICAÇÃO
+   ========================================================= */
+
+const state = {
+
+  /* utilizador autenticado */
   user: null,
+
+  /* perfil da tabela profiles */
   profile: null,
-  plano: "Basic",
-  gruposUsados: 0
+
+  /* plano atual */
+  planoAtual: "Basic",
+
+  /* quantidade de grupos usados */
+  gruposUsados: 0,
+
+  /* grupos do utilizador */
+  meusGrupos: [],
+
+  /* grupos públicos disponíveis */
+  gruposDisponiveis: [],
+
+  /* grupo atualmente aberto */
+  grupoAtual: null,
+
+  /* página atual */
+  paginaAtual: "home"
+
 };
 
-  function safe(fn) {
-  return async (...args) => {
-    try {
-      return await fn(...args);
-    } catch (e) {
-      console.log("ERRO:", e);
-      alert("Erro interno. Ver consola.");
-    }
-  };
-  }
 
-const limitesPlano = {
+/* =========================================================
+   3. LIMITES DOS PLANOS
+   ========================================================= */
+
+const LIMITES_PLANOS = {
+
   Basic: 3,
+
   Pro: 10,
+
   Premium: 999
+
 };
 
-  function updateUI() {
-  if (!state.profile) return;
 
-  document.getElementById("userEmail").innerText =
-    "👤 " + (state.profile.nome || state.user.email);
+/* =========================================================
+   4. FUNÇÕES AUXILIARES
+   ========================================================= */
 
-  document.getElementById("perfilNome").innerText =
-    state.profile.nome || "Sem nome";
 
-  document.getElementById("userSaldo").innerText =
-    (state.profile.saldo || 0) + " Kz";
+/*
+  Obtém um elemento pelo ID sem causar erro
+  caso ele ainda não exista no HTML.
+*/
 
-  document.getElementById("planoAtual").innerText = state.plano;
-  document.getElementById("gruposUsados").innerText = state.gruposUsados;
-  document.getElementById("gruposLimite").innerText =
-    limitesPlano[state.plano] || 0;
-  }
+function el(id) {
 
-/* LOGIN */
-  const login = safe(async () => {
+  return document.getElementById(id);
 
-  const email = document.getElementById("email").value;
-  const password = document.getElementById("password").value;
+}
 
-  const { data, error } = await client.auth.signInWithPassword({
-    email,
-    password
-  });
 
-  if (error) return alert(error.message);
+/*
+  Converte um valor para número.
+*/
 
-  state.user = data.user;
-    currentUser = data.user;
+function numero(valor) {
 
-  const { data: profile } = await client
-    .from("profiles")
-    .select("*")
-    .eq("id", state.user.id)
-    .single();
+  const n = Number(valor);
 
-  state.profile = profile;
-  state.plano = profile.plano || "Basic";
-  state.gruposUsados = profile.grupos_usados || 0;
+  return Number.isFinite(n) ? n : 0;
 
-  document.getElementById("loginBox").style.display = "none";
-  document.getElementById("app").style.display = "block";
+}
 
-  updateUI();
-    carregarDadosApp();
-});
-  
-/* GRUPOS */
-async function carregarGrupos() {
-  const { data: grupos } = await client
-    .from("groups")
-    .select("*")
-    .order("valor");
 
-  let html = "";
+/*
+  Formata valores monetários em Kz.
+*/
 
-  for (const grupo of grupos) {
+function formatarKz(valor) {
 
-    const { data: membro } = await client
-      .from("group_members")
-      .select("*")
-      .eq("group_id", grupo.id)
-      .eq("user_id", state.user.id);
+  return numero(valor).toLocaleString("pt-AO") + " Kz";
 
-    const { count } = await client
-      .from("group_members")
-      .select("*", { count: "exact", head: true })
-      .eq("group_id", grupo.id);
+}
 
-    const lotado = count >= grupo.max_membros;
-    const participa = membro.length > 0;
 
-    html += `
-      <div class="grupo-card" data-id="${grupo.id}" data-tipo="${(grupo.tipo || 'semanal').toLowerCase()}">
-        <b>${grupo.nome}</b><br>
-        Valor: ${grupo.valor} Kz<br>
-        <span id="membros-${grupo.id}">👥 ${count}/${grupo.max_membros}</span><br><br>
+/*
+  Mostra uma notificação simples.
+*/
 
-        ${
-          lotado
-            ? `<div style="color:red;font-weight:bold;">🔴 Grupo Lotado</div>`
-            : participa
-              ? `<div style="color:green;font-weight:bold;">✅ Já participa</div>
-                 <button onclick="sairGrupo(${grupo.id})">Sair</button>`
-              : `<button onclick="entrarGrupo(${grupo.id})">Entrar</button>`
-        }
-      </div>
+function mostrarNotificacao(titulo, mensagem) {
+
+  /*
+    Se o sistema de notificações já existir no HTML,
+    usamos esse sistema.
+  */
+
+  const notificacao =
+    el("notificacao");
+
+  if (notificacao) {
+
+    notificacao.innerHTML = `
+      <strong>${titulo}</strong>
+      <br>
+      <span>${mensagem}</span>
     `;
-  }
 
-  document.getElementById("listaGrupos").innerHTML = html;
-}
-
-/* ENTRAR GRUPO */
-async function entrarGrupo(groupId) {
-
-  const limite = limitesPlano[planoAtual] || 0;
-
-  if (gruposUsados >= limite) {
-    return alert("❌ Limite do plano atingido");
-  }
-
-  const { data: existe } = await client
-    .from("group_members")
-    .select("*")
-    .eq("group_id", groupId)
-    .eq("user_id", currentUser.id);
-
-  if (existe.length > 0) {
-    return alert("Já fazes parte deste grupo");
-  }
-
-  const { error } = await client
-    .from("group_members")
-    .insert({ group_id: groupId, user_id: currentUser.id });
-
-  if (error) return alert(error.message);
-
-  gruposUsados++;
-
-  await client
-    .from("profiles")
-    .update({ grupos_usados: gruposUsados })
-    .eq("id", currentUser.id);
-
-  await client.from("transactions").insert({
-    user_id: currentUser.id,
-    tipo: "entrada_grupo",
-    valor: 0
-  });
-
-  document.getElementById("gruposUsados").innerText = gruposUsados;
-
-  await carregarGrupos();
-  alert("✔ Entraste no grupo!");
-}
-
-/* SAIR GRUPO */
-async function sairGrupo(groupId) {
-
-  const { error } = await client
-    .from("group_members")
-    .delete()
-    .eq("group_id", groupId)
-    .eq("user_id", currentUser.id);
-
-  if (error) return alert(error.message);
-
-  gruposUsados = Math.max(0, gruposUsados - 1);
-
-  await client
-    .from("profiles")
-    .update({ grupos_usados: gruposUsados })
-    .eq("id", currentUser.id);
-
-  await client.from("transactions").insert({
-    user_id: currentUser.id,
-    tipo: "saida_grupo",
-    valor: 0
-  });
-
-  document.getElementById("gruposUsados").innerText = gruposUsados;
-
-  await carregarGrupos();
-  alert("Saíste do grupo!");
-}
-
-/* HISTÓRICO */
-async function carregarHistorico() {
-
-  const { data } = await client
-    .from("transactions")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .order("created_at", { ascending: false });
-
-  let html = "";
-
-  for (const t of data) {
-    let cor = "black";
-    if (t.tipo === "deposito") cor = "green";
-    if (t.tipo === "saida_grupo") cor = "red";
-
-    html += `
-      <div class="card">
-        <b style="color:${cor}">${t.tipo}</b><br>
-        ${t.valor} Kz<br>
-        <small>${new Date(t.created_at).toLocaleString()}</small>
-      </div>
-    `;
-  }
-
-  document.getElementById("historico").innerHTML =
-    html || "Nenhuma transação.";
-}
-
-/* SESSION */
-  async function verificarSessao() {
-
-  try {
-
-    const {
-      data: {
-        session
-      },
-      error
-    } = await client.auth.getSession();
-
-    if (error) {
-      console.error("Erro ao recuperar sessão:", error);
-      return;
-    }
-
-    /*
-     * NÃO existe sessão.
-     * Mostrar Login.
-     */
-
-    if (!session) {
-
-      currentUser = null;
-      state.user = null;
-      state.profile = null;
-
-      document.getElementById("loginBox").style.display = "block";
-      document.getElementById("app").style.display = "none";
-
-      return;
-    }
-
-    /*
-     * Existe sessão.
-     * Recuperar utilizador.
-     */
-
-    currentUser = session.user;
-    state.user = session.user;
-
-    /*
-     * Recuperar perfil.
-     */
-
-    const {
-      data: profile,
-      error: profileError
-    } = await client
-      .from("profiles")
-      .select("*")
-      .eq("id", session.user.id)
-      .single();
-
-    if (profileError) {
-
-      console.error(
-        "Erro ao carregar perfil:",
-        profileError
-      );
-
-      /*
-       * NÃO expulsar o utilizador para o Login.
-       * A sessão continua válida.
-       */
-
-      state.profile = {
-        nome: "",
-        saldo: 0,
-        plano: "Basic",
-        grupos_usados: 0
-      };
-
-    } else {
-
-      state.profile = profile;
-
-    }
-
-    /*
-     * Atualizar estado
-     */
-
-    state.plano =
-      state.profile.plano || "Basic";
-
-    state.gruposUsados =
-      Number(state.profile.grupos_usados || 0);
-
-    /*
-     * Mostrar APP
-     */
-
-    document.getElementById("loginBox").style.display = "none";
-    document.getElementById("app").style.display = "block";
-
-    updateUI();
-
-    /*
-     * Carregar dados
-     */
-
-    carregarDadosApp();
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao recuperar sessão:",
-      erro
-    );
-
-  }
-  }
-
-  function updateUI() {
-  if (!state.profile) return;
-
-  document.getElementById("userEmail").innerText =
-    "👤 " + (state.profile.nome || state.user.email);
-
-  document.getElementById("perfilNome").innerText =
-    state.profile.nome || "Sem nome";
-
-  document.getElementById("userSaldo").innerText =
-    (state.profile.saldo || 0) + " Kz";
-
-  document.getElementById("planoAtual").innerText = state.plano;
-  document.getElementById("gruposUsados").innerText = state.gruposUsados;
-  document.getElementById("gruposLimite").innerText =
-    limitesPlano[state.plano] || 0;
-  }
-
-  const depositarValor = safe(async () => {
-
-  const valor = Number(document.getElementById("valorDeposito").value);
-
-  if (!valor || valor <= 0) return alert("Valor inválido");
-
-  const novoSaldo = Number(state.profile.saldo || 0) + valor;
-
-  await client
-    .from("profiles")
-    .update({ saldo: novoSaldo })
-    .eq("id", state.user.id);
-
-  state.profile.saldo = novoSaldo;
-
-  updateUI();
-
-  alert("Depósito feito!");
-});
-
-  function mostrarPagina(pagina) {
-
-  const paginas = [
-    "paginaInicio",
-    "paginaGrupos",
-    "paginaHistorico",
-    "paginaPerfil"
-  ];
-
-  paginas.forEach(p => {
-    document.getElementById(p).style.display = "none";
-  });
-
-  const alvo = "pagina" + pagina.charAt(0).toUpperCase() + pagina.slice(1);
-
-  document.getElementById(alvo).style.display = "block";
-  }
-
-  function filtrar(tipo) {
-
-  const grupos = document.querySelectorAll(".grupo-card");
-
-  grupos.forEach(g => {
-
-    const grupoTipo = (g.dataset.tipo || "").toLowerCase();
-    const filtro = tipo.toLowerCase();
-
-    if (filtro === "meus") {
-      g.style.display = "block";
-      return;
-    }
-
-    if (grupoTipo === filtro) {
-      g.style.display = "block";
-    } else {
-      g.style.display = "none";
-    }
-  });
-}
-
-  function mostrarNotificacao(titulo, mensagem) {
-
-  let container = document.querySelector(".kix-toast-container");
-
-  if (!container) {
-    container = document.createElement("div");
-    container.className = "kix-toast-container";
-    document.body.appendChild(container);
-  }
-
-  const toast = document.createElement("div");
-  toast.className = "kix-toast";
-
-  toast.innerHTML = `
-    <div class="kix-toast-icon">✓</div>
-
-    <div class="kix-toast-content">
-      <div class="kix-toast-title">${titulo}</div>
-      <div class="kix-toast-message">${mensagem}</div>
-    </div>
-
-    <button class="kix-toast-close" onclick="this.parentElement.remove()">
-      ×
-    </button>
-  `;
-
-  container.appendChild(toast);
-
-  requestAnimationFrame(() => {
-    toast.classList.add("show");
-  });
-
-  setTimeout(() => {
-    toast.classList.remove("show");
+    notificacao.style.display = "block";
 
     setTimeout(() => {
-      toast.remove();
-    }, 250);
 
-  }, 3500);
-    }
+      notificacao.style.display = "none";
 
-function carregarDadosApp() {
-  carregarGrupos();
-  carregarHistorico();
+    }, 3500);
+
+    return;
+  }
+
+
+  /*
+    Fallback caso o elemento ainda não exista.
+  */
+
+  console.log(titulo + ":", mensagem);
+
 }
 
 
 /* =========================================================
-   KIXAPP — NOVAS FUNÇÕES DE GRUPOS
+   5. OBTÉM O PLANO DO UTILIZADOR
+   ========================================================= */
+
+function obterLimitePlano() {
+
+  const plano =
+    state.planoAtual || "Basic";
+
+  return LIMITES_PLANOS[plano] || LIMITES_PLANOS.Basic;
+
+}
+
+
+/* =========================================================
+   6. VERIFICA SE O UTILIZADOR PODE CRIAR OUTRO GRUPO
+   ========================================================= */
+
+function podeCriarGrupo() {
+
+  const limite =
+    obterLimitePlano();
+
+  return state.gruposUsados < limite;
+
+}
+
+
+/* =========================================================
+   7. ATUALIZA CONTADORES INTERNOS
+   ========================================================= */
+
+function atualizarEstadoPlano() {
+
+  if (!state.profile) return;
+
+  state.planoAtual =
+    state.profile.plano || "Basic";
+
+}
+
+
+/* =========================================================
+   8. LIMPA O ESTADO DO UTILIZADOR
+   ========================================================= */
+
+function limparEstado() {
+
+  state.user = null;
+
+  state.profile = null;
+
+  state.planoAtual = "Basic";
+
+  state.gruposUsados = 0;
+
+  state.meusGrupos = [];
+
+  state.gruposDisponiveis = [];
+
+  state.grupoAtual = null;
+
+}
+
+
+/* =========================================================
+   FIM DA PARTE 1
+   ========================================================= */
+
+  <script>
+
+/* =========================================================
+   KIXAPP
+   PARTE 2 — AUTENTICAÇÃO E SESSÃO
+   ========================================================= */
+
+
+/* =========================================================
+   1. LOGIN
+   ========================================================= */
+
+async function login() {
+
+  const email =
+    el("loginEmail")?.value.trim();
+
+  const password =
+    el("loginPassword")?.value;
+
+
+  if (!email || !password) {
+
+    alert("Preencha o email e a palavra-passe.");
+
+    return;
+  }
+
+
+  const botao =
+    document.querySelector(
+      '#loginBox button[type="submit"], #loginBox button'
+    );
+
+
+  if (botao) {
+
+    botao.disabled = true;
+
+    botao.innerText = "A entrar...";
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client.auth.signInWithPassword({
+
+      email: email,
+
+      password: password
+
+    });
+
+
+    if (error) {
+
+      console.error(
+        "Erro no login:",
+        error
+      );
+
+      alert(
+        "Não foi possível iniciar sessão: " +
+        error.message
+      );
+
+      return;
+    }
+
+
+    if (!data?.user) {
+
+      alert(
+        "Não foi possível obter o utilizador."
+      );
+
+      return;
+    }
+
+
+    /*
+      Guardamos o utilizador no estado.
+    */
+
+    state.user =
+      data.user;
+
+
+    /*
+      A sessão do Supabase fica persistida
+      automaticamente pelo cliente.
+    */
+
+    await carregarPerfil();
+
+
+    mostrarNotificacao(
+      "Sessão iniciada",
+      "Bem-vindo ao KixApp."
+    );
+
+
+    /*
+      Mostra a página principal.
+    */
+
+    mostrarPagina("home");
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado no login:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao iniciar sessão."
+    );
+
+  } finally {
+
+    if (botao) {
+
+      botao.disabled = false;
+
+      botao.innerText = "Entrar";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   2. REGISTO
+   ========================================================= */
+
+async function signup() {
+
+  const nome =
+    el("signupNome")?.value.trim();
+
+  const email =
+    el("signupEmail")?.value.trim();
+
+  const password =
+    el("signupPassword")?.value;
+
+  const telefone =
+    el("signupTelefone")?.value.trim();
+
+
+  if (!nome) {
+
+    alert("Digite o seu nome.");
+
+    return;
+  }
+
+
+  if (!email) {
+
+    alert("Digite o seu email.");
+
+    return;
+  }
+
+
+  if (!password || password.length < 6) {
+
+    alert(
+      "A palavra-passe deve ter pelo menos 6 caracteres."
+    );
+
+    return;
+  }
+
+
+  const botao =
+    document.querySelector(
+      '#signupBox button[type="submit"], #signupBox button'
+    );
+
+
+  if (botao) {
+
+    botao.disabled = true;
+
+    botao.innerText = "A criar conta...";
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client.auth.signUp({
+
+      email: email,
+
+      password: password,
+
+      options: {
+
+        data: {
+
+          nome: nome,
+
+          telefone: telefone
+
+        }
+
+      }
+
+    });
+
+
+    if (error) {
+
+      console.error(
+        "Erro no registo:",
+        error
+      );
+
+      alert(
+        "Não foi possível criar a conta: " +
+        error.message
+      );
+
+      return;
+    }
+
+
+    /*
+      Dependendo da configuração do Supabase,
+      o email pode precisar de confirmação.
+    */
+
+    if (!data?.user) {
+
+      alert(
+        "Conta criada. Verifique o seu email para continuar."
+      );
+
+      return;
+    }
+
+
+    state.user =
+      data.user;
+
+
+    /*
+      O trigger do Supabase pode criar o perfil
+      automaticamente.
+
+      Tentamos carregar o perfil normalmente.
+    */
+
+    await carregarPerfil();
+
+
+    mostrarNotificacao(
+      "Conta criada",
+      "A sua conta foi criada com sucesso."
+    );
+
+
+    mostrarPagina("home");
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado no registo:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao criar a conta."
+    );
+
+  } finally {
+
+    if (botao) {
+
+      botao.disabled = false;
+
+      botao.innerText = "Criar conta";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   3. LOGOUT
+   ========================================================= */
+
+async function logout() {
+
+  try {
+
+    const {
+      error
+    } = await client.auth.signOut();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao terminar sessão:",
+        error
+      );
+
+      alert(
+        "Não foi possível terminar a sessão."
+      );
+
+      return;
+    }
+
+
+    /*
+      Limpamos completamente o estado local.
+    */
+
+    limparEstado();
+
+
+    /*
+      Se existir uma página de login,
+      mostramos novamente.
+    */
+
+    mostrarPagina("login");
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado no logout:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao terminar a sessão."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   4. VERIFICAR SESSÃO
+   ========================================================= */
+
+async function verificarSessao() {
+
+  try {
+
+    /*
+      O Supabase recupera a sessão persistida.
+    */
+
+    const {
+      data,
+      error
+    } = await client.auth.getSession();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao verificar sessão:",
+        error
+      );
+
+      limparEstado();
+
+      mostrarPagina("login");
+
+      return;
+    }
+
+
+    const session =
+      data?.session;
+
+
+    /*
+      Não existe sessão.
+    */
+
+    if (!session?.user) {
+
+      limparEstado();
+
+      mostrarPagina("login");
+
+      return;
+    }
+
+
+    /*
+      Existe sessão.
+    */
+
+    state.user =
+      session.user;
+
+
+    /*
+      Carregamos o perfil antes de atualizar
+      a interface.
+    */
+
+    await carregarPerfil();
+
+
+    /*
+      Depois do perfil carregado,
+      mostramos a página inicial.
+    */
+
+    mostrarPagina("home");
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao verificar sessão:",
+      erro
+    );
+
+    limparEstado();
+
+    mostrarPagina("login");
+
+  }
+
+}
+
+
+/* =========================================================
+   5. OUVIR ALTERAÇÕES DA SESSÃO
+   ========================================================= */
+
+client.auth.onAuthStateChange(
+  async (event, session) => {
+
+    console.log(
+      "Alteração de autenticação:",
+      event
+    );
+
+
+    /*
+      Logout.
+    */
+
+    if (event === "SIGNED_OUT") {
+
+      limparEstado();
+
+      mostrarPagina("login");
+
+      return;
+    }
+
+
+    /*
+      Login ou recuperação de sessão.
+    */
+
+    if (
+      event === "SIGNED_IN" ||
+      event === "INITIAL_SESSION"
+    ) {
+
+      if (!session?.user) {
+
+        limparEstado();
+
+        mostrarPagina("login");
+
+        return;
+      }
+
+
+      state.user =
+        session.user;
+
+
+      /*
+        Não carregamos várias vezes o perfil
+        se ele já estiver disponível.
+      */
+
+      if (!state.profile) {
+
+        await carregarPerfil();
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   6. EXPORTAR FUNÇÕES PARA O HTML
+   ========================================================= */
+
+window.login =
+  login;
+
+window.signup =
+  signup;
+
+window.logout =
+  logout;
+
+window.verificarSessao =
+  verificarSessao;
+
+
+/* =========================================================
+   FIM DA PARTE 2
+   ========================================================= */
+
+/* =========================================================
+   KIXAPP
+   PARTE 3 — PERFIL, SALDO E PLANO
+   ========================================================= */
+
+
+/* =========================================================
+   1. CARREGAR PERFIL
+   ========================================================= */
+
+async function carregarPerfil() {
+
+  if (!state.user) {
+    return;
+  }
+
+
+  const {
+    data: perfil,
+    error
+  } = await client
+    .from("profiles")
+    .select("*")
+    .eq("id", state.user.id)
+    .maybeSingle();
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao carregar perfil:",
+      error
+    );
+
+    return;
+  }
+
+
+  /*
+    Caso o perfil ainda não exista,
+    criamos um perfil básico.
+
+    Isto evita que a interface fique
+    sem dados depois do primeiro registo.
+  */
+
+  if (!perfil) {
+
+    const novoPerfil = {
+
+      id: state.user.id,
+
+      nome:
+        state.user.user_metadata?.nome ||
+        "",
+
+      email:
+        state.user.email || "",
+
+      telefone:
+        state.user.user_metadata?.telefone ||
+        "",
+
+      saldo: 0,
+
+      plano: "Basic"
+
+    };
+
+
+    const {
+      data: perfilCriado,
+      error: erroCriacao
+    } = await client
+      .from("profiles")
+      .insert(novoPerfil)
+      .select("*")
+      .single();
+
+
+    if (erroCriacao) {
+
+      console.error(
+        "Erro ao criar perfil:",
+        erroCriacao
+      );
+
+      /*
+        Mesmo que a criação do perfil falhe,
+        mantemos os dados básicos no estado.
+      */
+
+      state.profile =
+        novoPerfil;
+
+    } else {
+
+      state.profile =
+        perfilCriado;
+
+    }
+
+  } else {
+
+    state.profile =
+      perfil;
+
+  }
+
+
+  /*
+    Atualiza o plano interno.
+  */
+
+  atualizarEstadoPlano();
+
+
+  /*
+    Conta os grupos utilizados.
+  */
+
+  await calcularGruposUsados();
+
+
+  /*
+    Atualiza toda a interface.
+  */
+
+  atualizarUI();
+
+}
+
+
+/* =========================================================
+   2. CALCULAR GRUPOS UTILIZADOS
+   ========================================================= */
+
+async function calcularGruposUsados() {
+
+  if (!state.user) {
+
+    state.gruposUsados = 0;
+
+    return;
+
+  }
+
+
+  const {
+    count,
+    error
+  } = await client
+    .from("group_members")
+    .select("group_id", {
+      count: "exact",
+      head: true
+    })
+    .eq("user_id", state.user.id);
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao contar grupos:",
+      error
+    );
+
+    state.gruposUsados = 0;
+
+    return;
+  }
+
+
+  state.gruposUsados =
+    count || 0;
+
+}
+
+
+/* =========================================================
+   3. ATUALIZAR INTERFACE
+   ========================================================= */
+
+function atualizarUI() {
+
+  if (!state.user) {
+    return;
+  }
+
+
+  const perfil =
+    state.profile || {};
+
+
+  const nome =
+    perfil.nome ||
+    state.user.email ||
+    "Utilizador";
+
+
+  const saldo =
+    numero(perfil.saldo);
+
+
+  const plano =
+    perfil.plano ||
+    "Basic";
+
+
+  state.planoAtual =
+    plano;
+
+
+  /* -------------------------------------------------------
+     Nome / email
+     ------------------------------------------------------- */
+
+  if (el("userEmail")) {
+
+    el("userEmail").innerText =
+      "👤 " + nome;
+
+  }
+
+
+  if (el("perfilNome")) {
+
+    el("perfilNome").innerText =
+      nome || "Sem nome";
+
+  }
+
+
+  if (el("perfilEmail")) {
+
+    el("perfilEmail").innerText =
+      state.user.email || "";
+
+  }
+
+
+  if (el("perfilTelefone")) {
+
+    el("perfilTelefone").innerText =
+      perfil.telefone || "Sem telefone";
+
+  }
+
+
+  /* -------------------------------------------------------
+     Saldo
+     ------------------------------------------------------- */
+
+  if (el("userSaldo")) {
+
+    el("userSaldo").innerText =
+      formatarKz(saldo);
+
+  }
+
+
+  if (el("saldoAtual")) {
+
+    el("saldoAtual").innerText =
+      formatarKz(saldo);
+
+  }
+
+
+  /* -------------------------------------------------------
+     Plano
+     ------------------------------------------------------- */
+
+  if (el("planoAtual")) {
+
+    el("planoAtual").innerText =
+      plano;
+
+  }
+
+
+  if (el("userPlano")) {
+
+    el("userPlano").innerText =
+      plano;
+
+  }
+
+
+  /* -------------------------------------------------------
+     Grupos
+     ------------------------------------------------------- */
+
+  if (el("gruposUsados")) {
+
+    el("gruposUsados").innerText =
+      state.gruposUsados;
+
+  }
+
+
+  if (el("limiteGrupos")) {
+
+    const limite =
+      obterLimitePlano();
+
+    el("limiteGrupos").innerText =
+      limite >= 999
+        ? "Ilimitado"
+        : limite;
+
+  }
+
+
+  /* -------------------------------------------------------
+     Status do plano
+     ------------------------------------------------------- */
+
+  if (el("statusPlano")) {
+
+    el("statusPlano").innerText =
+      "Ativo";
+
+  }
+
+
+  /* -------------------------------------------------------
+     Elementos de plano já existentes
+     ------------------------------------------------------- */
+
+  const planoElementos =
+    document.querySelectorAll(
+      "[data-plano-atual]"
+    );
+
+
+  planoElementos.forEach(elemento => {
+
+    elemento.innerText =
+      plano;
+
+  });
+
+
+  /*
+    Atualiza também a área de criação de grupos.
+  */
+
+  atualizarPlanoGrupo();
+
+}
+
+
+/* =========================================================
+   4. DEPOSITAR / ADICIONAR SALDO
+   ========================================================= */
+
+async function depositarValor() {
+
+  if (!state.user || !state.profile) {
+
+    alert(
+      "Sessão não encontrada. Entre novamente."
+    );
+
+    return;
+  }
+
+
+  const input =
+    el("valorDeposito");
+
+
+  const valor =
+    numero(input?.value);
+
+
+  if (!valor || valor <= 0) {
+
+    alert(
+      "Digite um valor válido."
+    );
+
+    return;
+  }
+
+
+  const botao =
+    document.querySelector(
+      '#depositoBox button'
+    );
+
+
+  if (botao) {
+
+    botao.disabled = true;
+
+    botao.innerText =
+      "A processar...";
+
+  }
+
+
+  try {
+
+    const saldoAtual =
+      numero(state.profile.saldo);
+
+
+    const novoSaldo =
+      saldoAtual + valor;
+
+
+    /*
+      Atualizamos o perfil.
+
+      A atualização só é considerada concluída
+      depois de o Supabase confirmar.
+    */
+
+    const {
+      data,
+      error
+    } = await client
+      .from("profiles")
+      .update({
+
+        saldo: novoSaldo
+
+      })
+      .eq("id", state.user.id)
+      .select("*")
+      .single();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao atualizar saldo:",
+        error
+      );
+
+      alert(
+        "Não foi possível atualizar o saldo: " +
+        error.message
+      );
+
+      return;
+    }
+
+
+    /*
+      Atualiza o estado com o valor realmente
+      devolvido pelo Supabase.
+    */
+
+    state.profile =
+      data;
+
+
+    /*
+      Atualiza a interface imediatamente.
+    */
+
+    atualizarUI();
+
+
+    /*
+      Limpa o campo.
+    */
+
+    if (input) {
+
+      input.value = "";
+
+    }
+
+
+    mostrarNotificacao(
+      "Saldo atualizado",
+      "Foram adicionados " +
+      formatarKz(valor) +
+      " ao seu saldo."
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao depositar:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao atualizar o saldo."
+    );
+
+  } finally {
+
+    if (botao) {
+
+      botao.disabled = false;
+
+      botao.innerText =
+        "Adicionar saldo";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   5. SALVAR NOME
+   ========================================================= */
+
+async function salvarNome() {
+
+  if (!state.user) {
+
+    alert(
+      "Sessão não encontrada."
+    );
+
+    return;
+  }
+
+
+  const input =
+    el("novoNome");
+
+
+  const nome =
+    input?.value.trim();
+
+
+  if (!nome) {
+
+    alert(
+      "Digite o seu nome."
+    );
+
+    return;
+  }
+
+
+  const botao =
+    document.querySelector(
+      '#editarPerfilBox button'
+    );
+
+
+  if (botao) {
+
+    botao.disabled = true;
+
+    botao.innerText =
+      "A guardar...";
+
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("profiles")
+      .update({
+
+        nome: nome
+
+      })
+      .eq("id", state.user.id)
+      .select("*")
+      .single();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao guardar nome:",
+        error
+      );
+
+      alert(
+        "Não foi possível guardar o nome: " +
+        error.message
+      );
+
+      return;
+    }
+
+
+    state.profile =
+      data;
+
+
+    atualizarUI();
+
+
+    if (input) {
+
+      input.value = "";
+
+    }
+
+
+    mostrarNotificacao(
+      "Perfil atualizado",
+      "O seu nome foi atualizado com sucesso."
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao atualizar o perfil."
+    );
+
+  } finally {
+
+    if (botao) {
+
+      botao.disabled = false;
+
+      botao.innerText =
+        "Guardar nome";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   6. EXPORTAR FUNÇÕES
+   ========================================================= */
+
+window.carregarPerfil =
+  carregarPerfil;
+
+window.atualizarUI =
+  atualizarUI;
+
+window.calcularGruposUsados =
+  calcularGruposUsados;
+
+window.depositarValor =
+  depositarValor;
+
+window.salvarNome =
+  salvarNome;
+
+
+/* =========================================================
+   FIM DA PARTE 3
+   ========================================================= */
+
+/* =========================================================
+   KIXAPP
+   PARTE 4 — NAVEGAÇÃO E MÓDULOS
+   ========================================================= */
+
+
+/* =========================================================
+   1. MOSTRAR PÁGINA
+   ========================================================= */
+
+function mostrarPagina(pagina) {
+
+  if (!pagina) return;
+
+  state.paginaAtual = pagina;
+
+
+  /*
+    Todas as páginas existentes na aplicação.
+  */
+
+  const paginas =
+    document.querySelectorAll(
+      ".pagina"
+    );
+
+
+  paginas.forEach(elemento => {
+
+    elemento.style.display =
+      "none";
+
+  });
+
+
+  /*
+    Tenta encontrar a página pelo ID.
+  */
+
+  const paginaElemento =
+    el(pagina);
+
+
+  if (paginaElemento) {
+
+    paginaElemento.style.display =
+      "block";
+
+  }
+
+
+  /*
+    Também suporta IDs no formato:
+    paginaHome
+    paginaPerfil
+    paginaGrupos
+    etc.
+  */
+
+  const paginaAlternativa =
+    el("pagina" + capitalizar(pagina));
+
+
+  if (
+    paginaAlternativa &&
+    paginaAlternativa !== paginaElemento
+  ) {
+
+    paginaAlternativa.style.display =
+      "block";
+
+  }
+
+
+  /*
+    Atualização específica ao abrir determinadas áreas.
+  */
+
+  if (
+    pagina === "grupos" ||
+    pagina === "meusGrupos"
+  ) {
+
+    carregarMeusGrupos();
+
+  }
+
+
+  if (
+    pagina === "pesquisarGrupos" ||
+    pagina === "gruposDisponiveis"
+  ) {
+
+    carregarGruposDisponiveis();
+
+  }
+
+
+  if (pagina === "home") {
+
+    atualizarUI();
+
+  }
+
+}
+
+
+/* =========================================================
+   2. CAPITALIZAR
+   ========================================================= */
+
+function capitalizar(texto) {
+
+  if (!texto) return "";
+
+  return texto.charAt(0).toUpperCase() +
+         texto.slice(1);
+
+}
+
+
+/* =========================================================
+   3. FILTRAR
+   ========================================================= */
+
+function filtrar(tipo) {
+
+  /*
+    Guardamos o filtro atual para futuras
+    atualizações da lista.
+  */
+
+  state.filtroGrupo =
+    tipo || "todos";
+
+
+  /*
+    Atualizamos visualmente os botões
+    de filtro.
+  */
+
+  const botoes =
+    document.querySelectorAll(
+      "[data-filtro]"
+    );
+
+
+  botoes.forEach(botao => {
+
+    botao.classList.remove(
+      "ativo"
+    );
+
+
+    if (
+      botao.dataset.filtro ===
+      state.filtroGrupo
+    ) {
+
+      botao.classList.add(
+        "ativo"
+      );
+
+    }
+
+  });
+
+
+  /*
+    Se existir uma lista de grupos,
+    aplicamos o filtro aos cartões.
+  */
+
+  const cards =
+    document.querySelectorAll(
+      ".grupo-card"
+    );
+
+
+  cards.forEach(card => {
+
+    const tipoGrupo =
+      (
+        card.dataset.tipo ||
+        ""
+      ).toLowerCase();
+
+
+    const filtro =
+      String(
+        state.filtroGrupo
+      ).toLowerCase();
+
+
+    if (
+      filtro === "todos" ||
+      !filtro
+    ) {
+
+      card.style.display =
+        "";
+
+      return;
+
+    }
+
+
+    if (
+      tipoGrupo === filtro
+    ) {
+
+      card.style.display =
+        "";
+
+    } else {
+
+      card.style.display =
+        "none";
+
+    }
+
+  });
+
+}
+
+
+/* =========================================================
+   4. ABRIR CRIAÇÃO DE GRUPO
    ========================================================= */
 
 function abrirCriarGrupo() {
 
-  document.getElementById("criarGrupoBox").style.display = "block";
-  document.getElementById("pesquisarGruposBox").style.display = "none";
+  const box =
+    el("criarGrupoBox");
 
-  document.getElementById("criarGrupoBox")
-    .scrollIntoView({ behavior: "smooth" });
+
+  if (!box) {
+
+    console.warn(
+      "Elemento criarGrupoBox não encontrado."
+    );
+
+    return;
+  }
+
+
+  /*
+    Atualizamos o plano antes de mostrar
+    a área de criação.
+  */
+
+  atualizarPlanoGrupo();
+
+
+  box.style.display =
+    "block";
+
+
+  /*
+    Posiciona o utilizador no formulário.
+  */
+
+  box.scrollIntoView({
+    behavior: "smooth",
+    block: "center"
+  });
+
 }
 
+
+/* =========================================================
+   5. FECHAR CRIAÇÃO DE GRUPO
+   ========================================================= */
 
 function fecharCriarGrupo() {
 
-  document.getElementById("criarGrupoBox").style.display = "none";
+  const box =
+    el("criarGrupoBox");
+
+
+  if (!box) return;
+
+
+  box.style.display =
+    "none";
 
 }
 
 
+/* =========================================================
+   6. ABRIR PESQUISA DE GRUPOS
+   ========================================================= */
+
 function abrirPesquisarGrupos() {
 
-  document.getElementById("criarGrupoBox").style.display = "none";
-  document.getElementById("pesquisarGruposBox").style.display = "block";
+  const box =
+    el("pesquisarGruposBox");
+
+
+  if (box) {
+
+    box.style.display =
+      "block";
+
+    box.scrollIntoView({
+      behavior: "smooth",
+      block: "center"
+    });
+
+  }
+
+
+  /*
+    Carrega imediatamente os grupos públicos.
+  */
 
   carregarGruposDisponiveis();
 
 }
 
 
+/* =========================================================
+   7. FECHAR PESQUISA DE GRUPOS
+   ========================================================= */
+
+function fecharPesquisarGrupos() {
+
+  const box =
+    el("pesquisarGruposBox");
+
+
+  if (!box) return;
+
+
+  box.style.display =
+    "none";
+
+}
+
+
+/* =========================================================
+   8. ATUALIZAR ÁREA DO PLANO
+   ========================================================= */
+
 function atualizarPlanoGrupo() {
 
-  const quantidade = Number(
-    document.getElementById("novoGrupoMembros").value
-  );
-
-  const info = document.getElementById("planoGrupoInfo");
-
-  if (quantidade <= 5) {
-
-    info.innerHTML =
-      "Grupo gratuito — até 5 participantes.";
-
-  } else {
-
-    info.innerHTML =
-      "Grupo Pro — grupos de 6 a 10 participantes.";
-
-  }
-
-}
+  const plano =
+    state.planoAtual ||
+    state.profile?.plano ||
+    "Basic";
 
 
-async function criarGrupo() {
+  const limite =
+    LIMITES_PLANOS[plano] ||
+    LIMITES_PLANOS.Basic;
 
-  if (!state.user) {
-    alert("Sessão não encontrada. Entre novamente.");
-    return;
-  }
 
-  const nome =
-    document.getElementById("novoGrupoNome").value.trim();
+  /*
+    Mostra o nome do plano.
+  */
 
-  const valor =
-    Number(document.getElementById("novoGrupoValor").value);
-
-  const tipo =
-    document.getElementById("novoGrupoTipo").value;
-
-  const membros =
-    Number(document.getElementById("novoGrupoMembros").value);
-
-  if (!nome) {
-    alert("Digite o nome do grupo.");
-    return;
-  }
-
-  if (!valor || valor <= 0) {
-    alert("Digite um valor válido.");
-    return;
-  }
-
-  if (membros < 2 || membros > 10) {
-    alert("O grupo deve ter entre 2 e 10 participantes.");
-    return;
-  }
-
-  const botao = document.querySelector(
-    '#criarGrupoBox button[onclick="criarGrupo()"]'
-  );
-
-  botao.disabled = true;
-  botao.innerText = "A criar grupo...";
-
-  try {
-
-    const { data, error } = await client.rpc(
-      "criar_grupo_kixapp",
-      {
-        p_nome: nome,
-        p_valor: valor,
-        p_tipo: tipo,
-        p_max_membros: membros
-      }
+  const elementosPlano =
+    document.querySelectorAll(
+      "[data-plano]"
     );
 
-    if (error) {
-      console.error(error);
-      alert(error.message);
-      return;
+
+  elementosPlano.forEach(elemento => {
+
+    elemento.innerText =
+      plano;
+
+  });
+
+
+  /*
+    Mostra a quantidade utilizada.
+  */
+
+  const elementosUso =
+    document.querySelectorAll(
+      "[data-grupos-usados]"
+    );
+
+
+  elementosUso.forEach(elemento => {
+
+    elemento.innerText =
+      state.gruposUsados;
+
+  });
+
+
+  /*
+    Mostra o limite.
+  */
+
+  const elementosLimite =
+    document.querySelectorAll(
+      "[data-limite-grupos]"
+    );
+
+
+  elementosLimite.forEach(elemento => {
+
+    elemento.innerText =
+      limite >= 999
+        ? "Ilimitado"
+        : limite;
+
+  });
+
+
+  /*
+    Verifica se o utilizador ainda pode
+    criar grupos.
+  */
+
+  const podeCriar =
+    podeCriarGrupo();
+
+
+  const botaoCriar =
+    document.querySelector(
+      '#criarGrupoBox button[onclick="criarGrupo()"]'
+    );
+
+
+  if (botaoCriar) {
+
+    botaoCriar.disabled =
+      !podeCriar;
+
+
+    if (!podeCriar) {
+
+      botaoCriar.innerText =
+        "Limite do plano atingido";
+
+    } else {
+
+      botaoCriar.innerText =
+        "Criar grupo";
+
     }
 
-    mostrarNotificacao(
-  "Kixikila criada",
-  "O grupo foi criado com sucesso e já está disponível em Meus grupos."
-);
-
-    document.getElementById("novoGrupoNome").value = "";
-    document.getElementById("novoGrupoValor").value = "";
-    document.getElementById("novoGrupoMembros").value = "2";
-
-    fecharCriarGrupo();
-
-    await carregarGrupos();
-    await carregarGruposDisponiveis();
-
-  } finally {
-
-    botao.disabled = false;
-    botao.innerText = "Criar grupo";
-
-  }
-}
-
-
-async function carregarGruposDisponiveis() {
-
-  const container =
-    document.getElementById("listaGruposPublicos");
-
-  if (!container) return;
-
-  container.innerHTML =
-    "A procurar grupos disponíveis...";
-
-  const { data: grupos, error } = await client
-    .from("groups")
-    .select("*")
-    .eq("privado", false)
-    .eq("status", "aberto")
-    .order("valor");
-
-  if (error) {
-
-    console.error(error);
-
-    container.innerHTML =
-      "Não foi possível carregar os grupos.";
-
-    return;
   }
 
-  if (!grupos || grupos.length === 0) {
 
-    container.innerHTML =
-      "Neste momento não existem grupos disponíveis.";
+  /*
+    Mensagem explicativa.
+  */
 
-    return;
+  const aviso =
+    el("avisoLimiteGrupo");
+
+
+  if (aviso) {
+
+    if (podeCriar) {
+
+      aviso.style.display =
+        "none";
+
+    } else {
+
+      aviso.style.display =
+        "block";
+
+      aviso.innerText =
+        "Você atingiu o limite de grupos do seu plano.";
+
+    }
+
   }
-
-  let html = "";
-
-  for (const grupo of grupos) {
-
-    const { count } = await client
-      .from("group_members")
-      .select("*", {
-        count: "exact",
-        head: true
-      })
-      .eq("group_id", grupo.id);
-
-    const quantidade = count || 0;
-    const vagas =
-      Number(grupo.max_membros) - quantidade;
-
-    if (vagas <= 0) continue;
-
-    html += `
-      <div class="grupo-card">
-
-        <b>${grupo.nome}</b>
-
-        <br><br>
-
-        Contribuição:
-        <strong>${grupo.valor} Kz</strong>
-
-        <br>
-
-        Periodicidade:
-        ${grupo.tipo}
-
-        <br>
-
-        Participantes:
-        ${quantidade}/${grupo.max_membros}
-
-        <br>
-
-        Vagas disponíveis:
-        ${vagas}
-
-        <br><br>
-
-        <button
-          onclick="entrarGrupo(${grupo.id})"
-          style="
-            width:100%;
-            padding:10px;
-            border:none;
-            border-radius:8px;
-            background:#1e3a8a;
-            color:white;
-          "
-        >
-          Entrar no grupo
-        </button>
-
-      </div>
-    `;
-  }
-
-  container.innerHTML =
-    html ||
-    "Neste momento não existem grupos com vagas.";
-}
-
-
-async function carregarMeusGrupos() {
-
-  const container =
-    document.getElementById("listaMeusGrupos");
-
-  if (!container || !state.user) return;
-
-  const { data, error } = await client
-    .from("group_members")
-    .select(`
-      group_id,
-      groups (
-        id,
-        nome,
-        valor,
-        tipo,
-        max_membros,
-        rodada_atual,
-        total_rodadas,
-        status
-      )
-    `)
-    .eq("user_id", state.user.id);
-
-  if (error) {
-
-    console.error(error);
-
-    container.innerHTML =
-      "Não foi possível carregar os seus grupos.";
-
-    return;
-  }
-
-  if (!data || data.length === 0) {
-
-    container.innerHTML =
-      "Você ainda não participa de nenhuma Kixikila.";
-
-    return;
-  }
-
-  let html = "";
-
-  for (const item of data) {
-
-    const grupo = item.groups;
-
-    if (!grupo) continue;
-
-    html += `
-      <div class="grupo-card">
-
-        <b>${grupo.nome}</b>
-
-        <br><br>
-
-        ${grupo.valor} Kz /
-        ${grupo.tipo}
-
-        <br>
-
-        Rodada:
-        ${grupo.rodada_atual || 1}
-        /
-        ${grupo.total_rodadas || grupo.max_membros}
-
-        <br>
-
-        Estado:
-        ${grupo.status}
-
-        <br><br>
-
-        <button
-          onclick="abrirGrupo(${grupo.id})"
-          style="
-            width:100%;
-            padding:10px;
-            border:none;
-            border-radius:8px;
-            background:#1e3a8a;
-            color:white;
-          "
-        >
-          Abrir grupo
-        </button>
-
-      </div>
-    `;
-  }
-
-  container.innerHTML =
-    html ||
-    "Você ainda não participa de nenhuma Kixikila.";
-}
-
-
-function abrirGrupo(groupId) {
-
-  alert(
-    "Área do grupo preparada. A próxima etapa será a cabeça e a rodada."
-  );
 
 }
 
 
-/* FUNÇÕES DISPONÍVEIS PARA O HTML */
+/* =========================================================
+   9. EXPORTAR FUNÇÕES
+   ========================================================= */
 
-window.abrirCriarGrupo = abrirCriarGrupo;
-window.fecharCriarGrupo = fecharCriarGrupo;
-window.abrirPesquisarGrupos = abrirPesquisarGrupos;
-window.atualizarPlanoGrupo = atualizarPlanoGrupo;
-window.criarGrupo = criarGrupo;
-window.carregarGruposDisponiveis = carregarGruposDisponiveis;
-window.carregarMeusGrupos = carregarMeusGrupos;
-window.abrirGrupo = abrirGrupo;
+window.mostrarPagina =
+  mostrarPagina;
+
+window.filtrar =
+  filtrar;
+
+window.abrirCriarGrupo =
+  abrirCriarGrupo;
+
+window.fecharCriarGrupo =
+  fecharCriarGrupo;
+
+window.abrirPesquisarGrupos =
+  abrirPesquisarGrupos;
+
+window.fecharPesquisarGrupos =
+  fecharPesquisarGrupos;
+
+window.atualizarPlanoGrupo =
+  atualizarPlanoGrupo;
 
 
-window.login = login;
-window.signup = signup;
-window.logout = logout;
-window.entrarGrupo = entrarGrupo;
-window.sairGrupo = sairGrupo;
-window.depositarValor = depositarValor;
-window.salvarNome = salvarNome;
-window.mostrarPagina = mostrarPagina;
-window.filtrar = filtrar;
+/* =========================================================
+   FIM DA PARTE 4
+   ========================================================= */
 
-
-window.addEventListener("DOMContentLoaded", () => {
-  verificarSessao();
-});
-  </script>
