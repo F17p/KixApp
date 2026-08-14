@@ -724,14 +724,372 @@ async function carregarHistorico() {
       g.style.display = "none";
     }
   });
-  }
+}
 
-  function carregarDadosApp() {
+
+function carregarDadosApp() {
   carregarGrupos();
   carregarHistorico();
+}
+
+
+/* =========================================================
+   KIXAPP — NOVAS FUNÇÕES DE GRUPOS
+   ========================================================= */
+
+function abrirCriarGrupo() {
+
+  document.getElementById("criarGrupoBox").style.display = "block";
+  document.getElementById("pesquisarGruposBox").style.display = "none";
+
+  document.getElementById("criarGrupoBox")
+    .scrollIntoView({ behavior: "smooth" });
+}
+
+
+function fecharCriarGrupo() {
+
+  document.getElementById("criarGrupoBox").style.display = "none";
+
+}
+
+
+function abrirPesquisarGrupos() {
+
+  document.getElementById("criarGrupoBox").style.display = "none";
+  document.getElementById("pesquisarGruposBox").style.display = "block";
+
+  carregarGruposDisponiveis();
+
+}
+
+
+function atualizarPlanoGrupo() {
+
+  const quantidade = Number(
+    document.getElementById("novoGrupoMembros").value
+  );
+
+  const info = document.getElementById("planoGrupoInfo");
+
+  if (quantidade <= 5) {
+
+    info.innerHTML =
+      "Grupo gratuito — até 5 participantes.";
+
+  } else {
+
+    info.innerHTML =
+      "Grupo Pro — grupos de 6 a 10 participantes.";
+
   }
 
-  window.login = login;
+}
+
+
+async function criarGrupo() {
+
+  if (!state.user) {
+    alert("Sessão não encontrada. Entre novamente.");
+    return;
+  }
+
+  const nome =
+    document.getElementById("novoGrupoNome").value.trim();
+
+  const valor =
+    Number(document.getElementById("novoGrupoValor").value);
+
+  const tipo =
+    document.getElementById("novoGrupoTipo").value;
+
+  const membros =
+    Number(document.getElementById("novoGrupoMembros").value);
+
+  if (!nome) {
+    alert("Digite o nome do grupo.");
+    return;
+  }
+
+  if (!valor || valor <= 0) {
+    alert("Digite um valor válido.");
+    return;
+  }
+
+  if (membros < 2 || membros > 10) {
+    alert("O grupo deve ter entre 2 e 10 participantes.");
+    return;
+  }
+
+  const botao = document.querySelector(
+    '#criarGrupoBox button[onclick="criarGrupo()"]'
+  );
+
+  botao.disabled = true;
+  botao.innerText = "A criar grupo...";
+
+  try {
+
+    const { data, error } = await client.rpc(
+      "criar_grupo_kixapp",
+      {
+        p_nome: nome,
+        p_valor: valor,
+        p_tipo: tipo,
+        p_max_membros: membros
+      }
+    );
+
+    if (error) {
+      console.error(error);
+      alert(error.message);
+      return;
+    }
+
+    alert("Kixikila criada com sucesso.");
+
+    document.getElementById("novoGrupoNome").value = "";
+    document.getElementById("novoGrupoValor").value = "";
+    document.getElementById("novoGrupoMembros").value = "2";
+
+    fecharCriarGrupo();
+
+    await carregarGrupos();
+    await carregarGruposDisponiveis();
+
+  } finally {
+
+    botao.disabled = false;
+    botao.innerText = "Criar grupo";
+
+  }
+}
+
+
+async function carregarGruposDisponiveis() {
+
+  const container =
+    document.getElementById("listaGruposPublicos");
+
+  if (!container) return;
+
+  container.innerHTML =
+    "A procurar grupos disponíveis...";
+
+  const { data: grupos, error } = await client
+    .from("groups")
+    .select("*")
+    .eq("privado", false)
+    .eq("status", "aberto")
+    .order("valor");
+
+  if (error) {
+
+    console.error(error);
+
+    container.innerHTML =
+      "Não foi possível carregar os grupos.";
+
+    return;
+  }
+
+  if (!grupos || grupos.length === 0) {
+
+    container.innerHTML =
+      "Neste momento não existem grupos disponíveis.";
+
+    return;
+  }
+
+  let html = "";
+
+  for (const grupo of grupos) {
+
+    const { count } = await client
+      .from("group_members")
+      .select("*", {
+        count: "exact",
+        head: true
+      })
+      .eq("group_id", grupo.id);
+
+    const quantidade = count || 0;
+    const vagas =
+      Number(grupo.max_membros) - quantidade;
+
+    if (vagas <= 0) continue;
+
+    html += `
+      <div class="grupo-card">
+
+        <b>${grupo.nome}</b>
+
+        <br><br>
+
+        Contribuição:
+        <strong>${grupo.valor} Kz</strong>
+
+        <br>
+
+        Periodicidade:
+        ${grupo.tipo}
+
+        <br>
+
+        Participantes:
+        ${quantidade}/${grupo.max_membros}
+
+        <br>
+
+        Vagas disponíveis:
+        ${vagas}
+
+        <br><br>
+
+        <button
+          onclick="entrarGrupo(${grupo.id})"
+          style="
+            width:100%;
+            padding:10px;
+            border:none;
+            border-radius:8px;
+            background:#1e3a8a;
+            color:white;
+          "
+        >
+          Entrar no grupo
+        </button>
+
+      </div>
+    `;
+  }
+
+  container.innerHTML =
+    html ||
+    "Neste momento não existem grupos com vagas.";
+}
+
+
+async function carregarMeusGrupos() {
+
+  const container =
+    document.getElementById("listaMeusGrupos");
+
+  if (!container || !state.user) return;
+
+  const { data, error } = await client
+    .from("group_members")
+    .select(`
+      group_id,
+      groups (
+        id,
+        nome,
+        valor,
+        tipo,
+        max_membros,
+        rodada_atual,
+        total_rodadas,
+        status
+      )
+    `)
+    .eq("user_id", state.user.id);
+
+  if (error) {
+
+    console.error(error);
+
+    container.innerHTML =
+      "Não foi possível carregar os seus grupos.";
+
+    return;
+  }
+
+  if (!data || data.length === 0) {
+
+    container.innerHTML =
+      "Você ainda não participa de nenhuma Kixikila.";
+
+    return;
+  }
+
+  let html = "";
+
+  for (const item of data) {
+
+    const grupo = item.groups;
+
+    if (!grupo) continue;
+
+    html += `
+      <div class="grupo-card">
+
+        <b>${grupo.nome}</b>
+
+        <br><br>
+
+        ${grupo.valor} Kz /
+        ${grupo.tipo}
+
+        <br>
+
+        Rodada:
+        ${grupo.rodada_atual || 1}
+        /
+        ${grupo.total_rodadas || grupo.max_membros}
+
+        <br>
+
+        Estado:
+        ${grupo.status}
+
+        <br><br>
+
+        <button
+          onclick="abrirGrupo(${grupo.id})"
+          style="
+            width:100%;
+            padding:10px;
+            border:none;
+            border-radius:8px;
+            background:#1e3a8a;
+            color:white;
+          "
+        >
+          Abrir grupo
+        </button>
+
+      </div>
+    `;
+  }
+
+  container.innerHTML =
+    html ||
+    "Você ainda não participa de nenhuma Kixikila.";
+}
+
+
+function abrirGrupo(groupId) {
+
+  alert(
+    "Área do grupo preparada. A próxima etapa será a cabeça e a rodada."
+  );
+
+}
+
+
+/* FUNÇÕES DISPONÍVEIS PARA O HTML */
+
+window.abrirCriarGrupo = abrirCriarGrupo;
+window.fecharCriarGrupo = fecharCriarGrupo;
+window.abrirPesquisarGrupos = abrirPesquisarGrupos;
+window.atualizarPlanoGrupo = atualizarPlanoGrupo;
+window.criarGrupo = criarGrupo;
+window.carregarGruposDisponiveis = carregarGruposDisponiveis;
+window.carregarMeusGrupos = carregarMeusGrupos;
+window.abrirGrupo = abrirGrupo;
+
+
+window.login = login;
 window.signup = signup;
 window.logout = logout;
 window.entrarGrupo = entrarGrupo;
@@ -740,10 +1098,14 @@ window.depositarValor = depositarValor;
 window.salvarNome = salvarNome;
 window.mostrarPagina = mostrarPagina;
 window.filtrar = filtrar;
-  window.addEventListener("load", () => {
+
+
+window.addEventListener("load", () => {
   verificarSessao();
 });
-  window.addEventListener("DOMContentLoaded", () => {
+
+
+window.addEventListener("DOMContentLoaded", () => {
   verificarSessao();
 });
-</script>
+  </script>
