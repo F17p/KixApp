@@ -145,26 +145,178 @@ body{
   </div>
 
   <!-- GRUPOS -->
-  <div id="paginaGrupos" style="display:none;">
+<div id="paginaGrupos" style="display:none;">
 
-    <div class="card">
-      <h3>Grupos Kixikila</h3>
+  <div class="card">
 
-      <div id="tabs">
-        <button onclick="filtrar('Meus')">Meus Grupos</button>
-        <button onclick="filtrar('Semanal')">Semanal</button>
-        <button onclick="filtrar('Mensal')">Mensal</button>
-        <button onclick="filtrar('Trimestral')">Trimestral</button>
-      </div>
+    <h3>Kixikila</h3>
 
-      <div id="listaGrupos">
-        Carregando grupos...
-      </div>
+    <p style="color:#666;">
+      Escolha como deseja participar.
+    </p>
+
+    <div style="display:grid;gap:12px;margin-top:15px;">
+
+      <button
+        class="btn"
+        onclick="abrirCriarGrupo()"
+      >
+        Criar uma Kixikila
+      </button>
+
+      <button
+        class="btn"
+        onclick="abrirPesquisarGrupos()"
+      >
+        Pesquisar grupos
+      </button>
 
     </div>
 
   </div>
 
+
+  <!-- CRIAR GRUPO -->
+
+  <div
+    id="criarGrupoBox"
+    class="card"
+    style="display:none;"
+  >
+
+    <h3>Criar uma Kixikila</h3>
+
+    <p style="color:#666;">
+      Crie um grupo para jogar com pessoas que você conhece.
+    </p>
+
+    <br>
+
+    <label>Nome do grupo</label>
+
+    <input
+      class="input"
+      id="novoGrupoNome"
+      placeholder="Ex.: Kixikila da Família"
+    >
+
+    <br><br>
+
+    <label>Valor da contribuição</label>
+
+    <input
+      class="input"
+      id="novoGrupoValor"
+      type="number"
+      placeholder="Ex.: 5000"
+    >
+
+    <br><br>
+
+    <label>Periodicidade</label>
+
+    <select
+      class="input"
+      id="novoGrupoTipo"
+    >
+      <option value="semanal">Semanal</option>
+      <option value="mensal">Mensal</option>
+      <option value="trimestral">Trimestral</option>
+    </select>
+
+    <br><br>
+
+    <label>Número de participantes</label>
+
+    <select
+      class="input"
+      id="novoGrupoMembros"
+      onchange="atualizarPlanoGrupo()"
+    >
+      <option value="2">2 pessoas</option>
+      <option value="3">3 pessoas</option>
+      <option value="4">4 pessoas</option>
+      <option value="5">5 pessoas</option>
+      <option value="6">6 pessoas</option>
+      <option value="7">7 pessoas</option>
+      <option value="8">8 pessoas</option>
+      <option value="9">9 pessoas</option>
+      <option value="10">10 pessoas</option>
+    </select>
+
+    <div
+      id="planoGrupoInfo"
+      style="
+        margin-top:15px;
+        padding:12px;
+        background:#f4f6f8;
+        border-radius:8px;
+      "
+    >
+      Grupo gratuito até 5 participantes.
+    </div>
+
+    <button
+      class="btn"
+      onclick="criarGrupo()"
+    >
+      Criar grupo
+    </button>
+
+    <button
+      style="
+        width:100%;
+        padding:12px;
+        margin-top:10px;
+        border:1px solid #ddd;
+        border-radius:8px;
+        background:white;
+      "
+      onclick="fecharCriarGrupo()"
+    >
+      Cancelar
+    </button>
+
+    <p id="msgCriarGrupo"></p>
+
+  </div>
+
+
+  <!-- PESQUISAR GRUPOS -->
+
+  <div
+    id="pesquisarGruposBox"
+    class="card"
+    style="display:none;"
+  >
+
+    <h3>Pesquisar grupos</h3>
+
+    <p style="color:#666;">
+      Encontre grupos KixApp que ainda possuem vagas.
+    </p>
+
+    <div id="listaGruposPublicos">
+      Carregando grupos disponíveis...
+    </div>
+
+  </div>
+
+
+  <!-- MEUS GRUPOS -->
+
+  <div class="card">
+
+    <h3>Meus grupos</h3>
+
+    <div id="listaMeusGrupos">
+      Carregando...
+    </div>
+
+  </div>
+
+</div>
+  
   <!-- HISTÓRICO -->
   <div id="paginaHistorico" style="display:none;">
 
