@@ -92,6 +92,79 @@ body{
   background:white;
 }
 
+    /* NOTIFICAÇÃO KIXAPP */
+
+.kix-toast-container{
+  position:fixed;
+  top:20px;
+  left:16px;
+  right:16px;
+  z-index:99999;
+  display:flex;
+  justify-content:center;
+  pointer-events:none;
+}
+
+.kix-toast{
+  width:100%;
+  max-width:420px;
+  background:#ffffff;
+  border:1px solid #e5e7eb;
+  border-radius:16px;
+  padding:16px;
+  box-shadow:0 12px 35px rgba(0,0,0,0.15);
+  display:flex;
+  align-items:center;
+  gap:12px;
+  transform:translateY(-30px);
+  opacity:0;
+  transition:all .25s ease;
+}
+
+.kix-toast.show{
+  transform:translateY(0);
+  opacity:1;
+}
+
+.kix-toast-icon{
+  width:38px;
+  height:38px;
+  border-radius:50%;
+  background:#ecfdf5;
+  color:#059669;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:bold;
+  font-size:18px;
+  flex-shrink:0;
+}
+
+.kix-toast-content{
+  flex:1;
+}
+
+.kix-toast-title{
+  font-size:15px;
+  font-weight:700;
+  color:#111827;
+  margin-bottom:3px;
+}
+
+.kix-toast-message{
+  font-size:13px;
+  color:#6b7280;
+}
+
+.kix-toast-close{
+  border:none;
+  background:none;
+  font-size:20px;
+  color:#9ca3af;
+  cursor:pointer;
+  padding:4px;
+}
+
   </style>
 </head>
 
@@ -726,6 +799,47 @@ async function carregarHistorico() {
   });
 }
 
+  function mostrarNotificacao(titulo, mensagem) {
+
+  let container = document.querySelector(".kix-toast-container");
+
+  if (!container) {
+    container = document.createElement("div");
+    container.className = "kix-toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "kix-toast";
+
+  toast.innerHTML = `
+    <div class="kix-toast-icon">✓</div>
+
+    <div class="kix-toast-content">
+      <div class="kix-toast-title">${titulo}</div>
+      <div class="kix-toast-message">${mensagem}</div>
+    </div>
+
+    <button class="kix-toast-close" onclick="this.parentElement.remove()">
+      ×
+    </button>
+  `;
+
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("show");
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("show");
+
+    setTimeout(() => {
+      toast.remove();
+    }, 250);
+
+  }, 3500);
+    }
 
 function carregarDadosApp() {
   carregarGrupos();
@@ -846,7 +960,10 @@ async function criarGrupo() {
       return;
     }
 
-    alert("Kixikila criada com sucesso.");
+    mostrarNotificacao(
+  "Kixikila criada",
+  "O grupo foi criado com sucesso e já está disponível em Meus grupos."
+);
 
     document.getElementById("novoGrupoNome").value = "";
     document.getElementById("novoGrupoValor").value = "";
