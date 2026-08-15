@@ -4692,3 +4692,888 @@ window.avancarRodada =
 /* =========================================================
    FIM DA PARTE 7
    ========================================================= */
+
+  /* =========================================================
+   KIXAPP
+   PARTE 8 — TRANSAÇÕES E HISTÓRICO
+   ========================================================= */
+
+
+/* =========================================================
+   1. REGISTAR TRANSAÇÃO
+   ========================================================= */
+
+async function registarTransacao({
+
+  userId = null,
+  groupId = null,
+  tipo = "",
+  valor = 0,
+  descricao = "",
+  referencia = null
+
+} = {}) {
+
+  const utilizador =
+    userId ||
+    state.user?.id;
+
+
+  if (!utilizador) {
+
+    console.error(
+      "Não existe utilizador para a transação."
+    );
+
+    return {
+      sucesso: false,
+      error: "Utilizador não autenticado."
+    };
+
+  }
+
+
+  const valorNumerico =
+    numero(valor);
+
+
+  if (
+    !valorNumerico ||
+    valorNumerico <= 0
+  ) {
+
+    return {
+      sucesso: false,
+      error: "Valor da transação inválido."
+    };
+
+  }
+
+
+  try {
+
+    /*
+      Mantemos os campos básicos compatíveis
+      com a tabela transactions.
+    */
+
+    const transacao = {
+
+      user_id: utilizador,
+
+      group_id: groupId,
+
+      tipo: tipo,
+
+      valor: valorNumerico,
+
+      descricao: descricao,
+
+      referencia: referencia
+
+    };
+
+
+    const {
+      data,
+      error
+    } = await client
+      .from("transactions")
+      .insert(transacao)
+      .select("*")
+      .single();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao registar transação:",
+        error
+      );
+
+      return {
+        sucesso: false,
+        error: error.message
+      };
+
+    }
+
+
+    return {
+
+      sucesso: true,
+
+      data: data
+
+    };
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao registar transação:",
+      erro
+    );
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Erro ao registar transação."
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   2. CARREGAR HISTÓRICO
+   ========================================================= */
+
+async function carregarHistorico() {
+
+  const container =
+    el("listaHistorico");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!state.user) {
+
+    container.innerHTML =
+      "Entre na sua conta para consultar o histórico.";
+
+    return;
+  }
+
+
+  container.innerHTML =
+    "A carregar histórico...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("transactions")
+      .select(`
+        *,
+        groups (
+          id,
+          nome
+        )
+      `)
+      .eq(
+        "user_id",
+        state.user.id
+      )
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar histórico:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar o histórico.";
+
+      return;
+    }
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      container.innerHTML =
+        "Ainda não existem transações.";
+
+      return;
+    }
+
+
+    let html = "";
+
+
+    data.forEach(
+      transacao => {
+
+        const valor =
+          numero(
+            transacao.valor
+          );
+
+
+        const tipo =
+          String(
+            transacao.tipo ||
+            ""
+          ).toLowerCase();
+
+
+        const grupo =
+          transacao.groups;
+
+
+        const nomeGrupo =
+          grupo?.nome ||
+          "KixApp";
+
+
+        const dataTransacao =
+          transacao.created_at
+            ? new Date(
+                transacao.created_at
+              ).toLocaleString(
+                "pt-AO"
+              )
+            : "";
+
+
+        /*
+          Identifica visualmente se foi
+          entrada ou saída.
+        */
+
+        const entrada =
+          tipo.includes("entrada") ||
+          tipo.includes("deposito") ||
+          tipo.includes("depósito") ||
+          tipo.includes("credito") ||
+          tipo.includes("crédito") ||
+          tipo === "recebimento";
+
+
+        const sinal =
+          entrada
+            ? "+"
+            : "-";
+
+
+        html += `
+          <div
+            class="transacao-item"
+            style="
+              padding:12px;
+              margin-bottom:8px;
+              border-radius:10px;
+              background:#f8fafc;
+            "
+          >
+
+            <strong>
+              ${transacao.descricao || nomeGrupo}
+            </strong>
+
+            <br>
+
+            ${dataTransacao}
+
+            <br>
+
+            <span>
+              ${sinal}
+              ${formatarKz(valor)}
+            </span>
+
+          </div>
+        `;
+
+      }
+    );
+
+
+    container.innerHTML =
+      html;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado no histórico:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar o histórico.";
+
+  }
+
+}
+
+
+/* =========================================================
+   3. OBTER HISTÓRICO DO UTILIZADOR
+   ========================================================= */
+
+async function obterHistoricoUsuario() {
+
+  if (!state.user) {
+    return [];
+  }
+
+
+  const {
+    data,
+    error
+  } = await client
+    .from("transactions")
+    .select(`
+      *,
+      groups (
+        id,
+        nome
+      )
+    `)
+    .eq(
+      "user_id",
+      state.user.id
+    )
+    .order(
+      "created_at",
+      {
+        ascending: false
+      }
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao obter histórico:",
+      error
+    );
+
+    return [];
+
+  }
+
+
+  return data || [];
+
+}
+
+
+/* =========================================================
+   4. ATUALIZAR SALDO A PARTIR DO PERFIL
+   ========================================================= */
+
+async function sincronizarSaldo() {
+
+  if (!state.user) {
+    return false;
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("profiles")
+      .select(
+        "id, saldo, plano, nome, email, telefone"
+      )
+      .eq(
+        "id",
+        state.user.id
+      )
+      .maybeSingle();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao sincronizar saldo:",
+        error
+      );
+
+      return false;
+
+    }
+
+
+    if (!data) {
+
+      return false;
+
+    }
+
+
+    /*
+      O saldo mostrado na aplicação passa
+      a ser o saldo confirmado pelo banco.
+    */
+
+    state.profile = {
+
+      ...state.profile,
+
+      ...data
+
+    };
+
+
+    atualizarEstadoPlano();
+
+    atualizarUI();
+
+
+    return true;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao sincronizar saldo:",
+      erro
+    );
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   5. PROCESSAR ENTRADA FINANCEIRA
+   ========================================================= */
+
+async function processarEntradaFinanceira({
+
+  valor,
+  groupId = null,
+  descricao = "Entrada"
+
+} = {}) {
+
+  if (!state.user) {
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Utilizador não autenticado."
+
+    };
+
+  }
+
+
+  const valorNumerico =
+    numero(valor);
+
+
+  if (
+    valorNumerico <= 0
+  ) {
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Valor inválido."
+
+    };
+
+  }
+
+
+  const saldoAtual =
+    numero(
+      state.profile?.saldo
+    );
+
+
+  const novoSaldo =
+    saldoAtual +
+    valorNumerico;
+
+
+  try {
+
+    /*
+      Primeiro atualizamos o saldo
+      no banco.
+    */
+
+    const {
+      data: perfil,
+      error: erroSaldo
+    } = await client
+      .from("profiles")
+      .update({
+
+        saldo: novoSaldo
+
+      })
+      .eq(
+        "id",
+        state.user.id
+      )
+      .select("*")
+      .single();
+
+
+    if (erroSaldo) {
+
+      console.error(
+        "Erro ao adicionar saldo:",
+        erroSaldo
+      );
+
+      return {
+
+        sucesso: false,
+
+        error:
+          erroSaldo.message
+
+      };
+
+    }
+
+
+    /*
+      Depois registamos a transação.
+    */
+
+    const transacao =
+      await registarTransacao({
+
+        userId:
+          state.user.id,
+
+        groupId:
+          groupId,
+
+        tipo:
+          "entrada",
+
+        valor:
+          valorNumerico,
+
+        descricao:
+          descricao
+
+      });
+
+
+    /*
+      Se o registo da transação falhar,
+      não fingimos que tudo ocorreu normalmente.
+    */
+
+    if (!transacao.sucesso) {
+
+      console.error(
+        "Saldo atualizado, mas transação não registada:",
+        transacao.error
+      );
+
+    }
+
+
+    state.profile =
+      perfil;
+
+
+    atualizarUI();
+
+
+    return {
+
+      sucesso: true,
+
+      data: perfil,
+
+      transacao:
+        transacao
+
+    };
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao processar entrada financeira:",
+      erro
+    );
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Erro ao processar entrada."
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   6. PROCESSAR SAÍDA FINANCEIRA
+   ========================================================= */
+
+async function processarSaidaFinanceira({
+
+  valor,
+  groupId = null,
+  descricao = "Saída"
+
+} = {}) {
+
+  if (!state.user) {
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Utilizador não autenticado."
+
+    };
+
+  }
+
+
+  const valorNumerico =
+    numero(valor);
+
+
+  if (
+    valorNumerico <= 0
+  ) {
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Valor inválido."
+
+    };
+
+  }
+
+
+  const saldoAtual =
+    numero(
+      state.profile?.saldo
+    );
+
+
+  /*
+    Nunca permitimos saldo negativo
+    através desta função.
+  */
+
+  if (
+    saldoAtual <
+    valorNumerico
+  ) {
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Saldo insuficiente."
+
+    };
+
+  }
+
+
+  const novoSaldo =
+    saldoAtual -
+    valorNumerico;
+
+
+  try {
+
+    /*
+      Atualiza o saldo.
+    */
+
+    const {
+      data: perfil,
+      error: erroSaldo
+    } = await client
+      .from("profiles")
+      .update({
+
+        saldo: novoSaldo
+
+      })
+      .eq(
+        "id",
+        state.user.id
+      )
+      .select("*")
+      .single();
+
+
+    if (erroSaldo) {
+
+      console.error(
+        "Erro ao atualizar saldo:",
+        erroSaldo
+      );
+
+      return {
+
+        sucesso: false,
+
+        error:
+          erroSaldo.message
+
+      };
+
+    }
+
+
+    /*
+      Regista a saída.
+    */
+
+    const transacao =
+      await registarTransacao({
+
+        userId:
+          state.user.id,
+
+        groupId:
+          groupId,
+
+        tipo:
+          "saida",
+
+        valor:
+          valorNumerico,
+
+        descricao:
+          descricao
+
+      });
+
+
+    if (!transacao.sucesso) {
+
+      console.error(
+        "Saldo atualizado, mas transação não registada:",
+        transacao.error
+      );
+
+    }
+
+
+    state.profile =
+      perfil;
+
+
+    atualizarUI();
+
+
+    return {
+
+      sucesso: true,
+
+      data: perfil,
+
+      transacao:
+        transacao
+
+    };
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado:",
+      erro
+    );
+
+    return {
+
+      sucesso: false,
+
+      error:
+        "Erro ao processar saída."
+
+    };
+
+  }
+
+}
+
+
+/* =========================================================
+   7. ABRIR HISTÓRICO
+   ========================================================= */
+
+async function abrirHistorico() {
+
+  mostrarPagina(
+    "historico"
+  );
+
+
+  await carregarHistorico();
+
+}
+
+
+/* =========================================================
+   8. EXPORTAR FUNÇÕES
+   ========================================================= */
+
+window.registarTransacao =
+  registarTransacao;
+
+window.carregarHistorico =
+  carregarHistorico;
+
+window.obterHistoricoUsuario =
+  obterHistoricoUsuario;
+
+window.sincronizarSaldo =
+  sincronizarSaldo;
+
+window.processarEntradaFinanceira =
+  processarEntradaFinanceira;
+
+window.processarSaidaFinanceira =
+  processarSaidaFinanceira;
+
+window.abrirHistorico =
+  abrirHistorico;
+
+
+/* =========================================================
+   FIM DA PARTE 8
+   ========================================================= */
