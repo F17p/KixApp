@@ -3724,3 +3724,971 @@ window.sairGrupo =
 /* =========================================================
    FIM DA PARTE 6
    ========================================================= */
+
+  /* =========================================================
+   KIXAPP
+   PARTE 7 — CABEÇA, PARTICIPANTES E RODADAS
+   ========================================================= */
+
+
+/* =========================================================
+   1. ABRIR GRUPO
+   ========================================================= */
+
+async function abrirGrupo(groupId) {
+
+  if (!state.user) {
+
+    alert(
+      "Sessão não encontrada. Entre novamente."
+    );
+
+    return;
+  }
+
+
+  if (!groupId) {
+
+    alert(
+      "Grupo inválido."
+    );
+
+    return;
+  }
+
+
+  try {
+
+    /*
+      Procuramos o grupo.
+    */
+
+    const {
+      data: grupo,
+      error: erroGrupo
+    } = await client
+      .from("groups")
+      .select(`
+        id,
+        nome,
+        valor,
+        tipo,
+        max_membros,
+        rodada_atual,
+        total_rodadas,
+        status,
+        privado
+      `)
+      .eq(
+        "id",
+        groupId
+      )
+      .single();
+
+
+    if (erroGrupo) {
+
+      console.error(
+        "Erro ao abrir grupo:",
+        erroGrupo
+      );
+
+      alert(
+        "Não foi possível abrir o grupo."
+      );
+
+      return;
+    }
+
+
+    if (!grupo) {
+
+      alert(
+        "Grupo não encontrado."
+      );
+
+      return;
+    }
+
+
+    /*
+      Confirmamos que o utilizador pertence
+      ao grupo.
+    */
+
+    const {
+      data: membro,
+      error: erroMembro
+    } = await client
+      .from("group_members")
+      .select("group_id")
+      .eq(
+        "group_id",
+        groupId
+      )
+      .eq(
+        "user_id",
+        state.user.id
+      )
+      .maybeSingle();
+
+
+    if (erroMembro) {
+
+      console.error(
+        "Erro ao verificar membro:",
+        erroMembro
+      );
+
+      alert(
+        "Não foi possível verificar a sua participação."
+      );
+
+      return;
+    }
+
+
+    if (!membro) {
+
+      alert(
+        "Você não participa desta Kixikila."
+      );
+
+      return;
+    }
+
+
+    /*
+      Guardamos o grupo atual.
+    */
+
+    state.grupoAtual =
+      grupo;
+
+
+    /*
+      Carregamos os participantes.
+    */
+
+    await carregarParticipantesGrupo(
+      groupId
+    );
+
+
+    /*
+      Atualizamos as informações da rodada.
+    */
+
+    atualizarCabecaGrupo();
+
+
+    /*
+      Mostramos a página/área do grupo.
+    */
+
+    mostrarPagina(
+      "grupo"
+    );
+
+
+    /*
+      Caso exista um container específico
+      para o grupo, garantimos que esteja visível.
+    */
+
+    const areaGrupo =
+      el("grupoDetalhes");
+
+
+    if (areaGrupo) {
+
+      areaGrupo.style.display =
+        "block";
+
+      areaGrupo.scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+
+    }
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao abrir grupo:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao abrir o grupo."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   2. CARREGAR PARTICIPANTES
+   ========================================================= */
+
+async function carregarParticipantesGrupo(
+  groupId
+) {
+
+  const container =
+    el("listaParticipantesGrupo");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "A carregar participantes...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("group_members")
+      .select(`
+        user_id,
+        profiles (
+          id,
+          nome
+        )
+      `)
+      .eq(
+        "group_id",
+        groupId
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar participantes:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar os participantes.";
+
+      return;
+    }
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      container.innerHTML =
+        "Ainda não existem participantes.";
+
+      return;
+    }
+
+
+    /*
+      Guardamos os participantes no grupo atual.
+    */
+
+    if (state.grupoAtual) {
+
+      state.grupoAtual.participantes =
+        data;
+
+    }
+
+
+    let html = "";
+
+
+    data.forEach(
+      (item, index) => {
+
+        const perfil =
+          item.profiles;
+
+
+        const nome =
+          perfil?.nome ||
+          "Participante " +
+          (index + 1);
+
+
+        const estaVez =
+          determinarIndiceVez(
+            index,
+            data.length
+          );
+
+
+        html += `
+          <div
+            class="participante-item"
+            data-user-id="${item.user_id}"
+            style="
+              padding:12px;
+              margin-bottom:8px;
+              border-radius:10px;
+              background:#f1f5f9;
+            "
+          >
+
+            <strong>
+              ${index + 1}.
+              ${nome}
+            </strong>
+
+            ${
+              estaVez
+                ? `
+                  <span
+                    style="
+                      display:block;
+                      margin-top:5px;
+                      font-size:13px;
+                    "
+                  >
+                    Vez atual
+                  </span>
+                `
+                : ""
+            }
+
+          </div>
+        `;
+
+      }
+    );
+
+
+    container.innerHTML =
+      html;
+
+
+    /*
+      Depois de carregar os participantes,
+      atualizamos a cabeça.
+    */
+
+    atualizarCabecaGrupo();
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar os participantes.";
+
+  }
+
+}
+
+
+/* =========================================================
+   3. DETERMINAR ÍNDICE DA VEZ
+   ========================================================= */
+
+function determinarIndiceVez(
+  index,
+  quantidade
+) {
+
+  if (
+    !state.grupoAtual ||
+    quantidade <= 0
+  ) {
+
+    return false;
+
+  }
+
+
+  const rodada =
+    numero(
+      state.grupoAtual.rodada_atual
+    ) || 1;
+
+
+  /*
+    A rodada 1 corresponde ao primeiro
+    participante.
+
+    Rodadas seguintes avançam ciclicamente.
+  */
+
+  const indiceAtual =
+    (rodada - 1) %
+    quantidade;
+
+
+  return index === indiceAtual;
+
+}
+
+
+/* =========================================================
+   4. OBTER PARTICIPANTE DA VEZ
+   ========================================================= */
+
+function obterParticipanteDaVez() {
+
+  if (
+    !state.grupoAtual ||
+    !Array.isArray(
+      state.grupoAtual.participantes
+    ) ||
+    state.grupoAtual.participantes.length === 0
+  ) {
+
+    return null;
+
+  }
+
+
+  const participantes =
+    state.grupoAtual.participantes;
+
+
+  const rodada =
+    numero(
+      state.grupoAtual.rodada_atual
+    ) || 1;
+
+
+  const indice =
+    (rodada - 1) %
+    participantes.length;
+
+
+  return participantes[indice] ||
+         null;
+
+}
+
+
+/* =========================================================
+   5. OBTER PRÓXIMO PARTICIPANTE
+   ========================================================= */
+
+function obterProximoParticipante() {
+
+  if (
+    !state.grupoAtual ||
+    !Array.isArray(
+      state.grupoAtual.participantes
+    ) ||
+    state.grupoAtual.participantes.length === 0
+  ) {
+
+    return null;
+
+  }
+
+
+  const participantes =
+    state.grupoAtual.participantes;
+
+
+  const rodada =
+    numero(
+      state.grupoAtual.rodada_atual
+    ) || 1;
+
+
+  const indiceAtual =
+    (rodada - 1) %
+    participantes.length;
+
+
+  const proximoIndice =
+    (indiceAtual + 1) %
+    participantes.length;
+
+
+  return participantes[
+    proximoIndice
+  ] || null;
+
+}
+
+
+/* =========================================================
+   6. ATUALIZAR CABEÇA DO GRUPO
+   ========================================================= */
+
+function atualizarCabecaGrupo() {
+
+  if (!state.grupoAtual) {
+    return;
+  }
+
+
+  const atual =
+    obterParticipanteDaVez();
+
+
+  const proximo =
+    obterProximoParticipante();
+
+
+  const nomeAtual =
+    atual?.profiles?.nome ||
+    "Aguardando participante";
+
+
+  const nomeProximo =
+    proximo?.profiles?.nome ||
+    "Aguardando";
+
+
+  const rodada =
+    numero(
+      state.grupoAtual.rodada_atual
+    ) || 1;
+
+
+  const totalRodadas =
+    numero(
+      state.grupoAtual.total_rodadas
+    ) ||
+    numero(
+      state.grupoAtual.max_membros
+    );
+
+
+  /*
+    Nome do grupo.
+  */
+
+  const elementoNome =
+    el("grupoNomeAtual");
+
+
+  if (elementoNome) {
+
+    elementoNome.innerText =
+      state.grupoAtual.nome;
+
+  }
+
+
+  /*
+    Valor.
+  */
+
+  const elementoValor =
+    el("grupoValorAtual");
+
+
+  if (elementoValor) {
+
+    elementoValor.innerText =
+      formatarKz(
+        state.grupoAtual.valor
+      );
+
+  }
+
+
+  /*
+    Rodada.
+  */
+
+  const elementoRodada =
+    el("grupoRodadaAtual");
+
+
+  if (elementoRodada) {
+
+    elementoRodada.innerText =
+      rodada +
+      "/" +
+      totalRodadas;
+
+  }
+
+
+  /*
+    VEZ DO FULANO
+  */
+
+  const elementoVez =
+    el("vezDoFulano");
+
+
+  if (elementoVez) {
+
+    elementoVez.innerText =
+      nomeAtual;
+
+  }
+
+
+  /*
+    PRÓXIMA VEZ
+  */
+
+  const elementoProximaVez =
+    el("proximaVez");
+
+
+  if (elementoProximaVez) {
+
+    elementoProximaVez.innerText =
+      nomeProximo;
+
+  }
+
+
+  /*
+    Também suportamos atributos data-*.
+  */
+
+  document
+    .querySelectorAll(
+      "[data-vez-atual]"
+    )
+    .forEach(elemento => {
+
+      elemento.innerText =
+        nomeAtual;
+
+    });
+
+
+  document
+    .querySelectorAll(
+      "[data-proxima-vez]"
+    )
+    .forEach(elemento => {
+
+      elemento.innerText =
+        nomeProximo;
+
+    });
+
+
+  document
+    .querySelectorAll(
+      "[data-rodada-atual]"
+    )
+    .forEach(elemento => {
+
+      elemento.innerText =
+        rodada;
+
+    });
+
+
+  document
+    .querySelectorAll(
+      "[data-total-rodadas]"
+    )
+    .forEach(elemento => {
+
+      elemento.innerText =
+        totalRodadas;
+
+    });
+
+}
+
+
+/* =========================================================
+   7. VERIFICAR SE É A VEZ DO UTILIZADOR
+   ========================================================= */
+
+function ehMinhaVez() {
+
+  if (
+    !state.user ||
+    !state.grupoAtual
+  ) {
+
+    return false;
+
+  }
+
+
+  const atual =
+    obterParticipanteDaVez();
+
+
+  return (
+    atual?.user_id ===
+    state.user.id
+  );
+
+}
+
+
+/* =========================================================
+   8. ATUALIZAR RODADA LOCALMENTE
+   ========================================================= */
+
+function calcularProximaRodada() {
+
+  if (!state.grupoAtual) {
+    return 1;
+  }
+
+
+  const atual =
+    numero(
+      state.grupoAtual.rodada_atual
+    ) || 1;
+
+
+  const total =
+    numero(
+      state.grupoAtual.total_rodadas
+    ) ||
+    numero(
+      state.grupoAtual.max_membros
+    );
+
+
+  if (atual >= total) {
+
+    return total;
+
+  }
+
+
+  return atual + 1;
+
+}
+
+
+/* =========================================================
+   9. ATUALIZAR RODADA NO BANCO
+   ========================================================= */
+
+async function atualizarRodada(
+  groupId,
+  novaRodada
+) {
+
+  if (!groupId) {
+
+    alert(
+      "Grupo inválido."
+    );
+
+    return false;
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("groups")
+      .update({
+
+        rodada_atual:
+          novaRodada
+
+      })
+      .eq(
+        "id",
+        groupId
+      )
+      .select("*")
+      .single();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao atualizar rodada:",
+        error
+      );
+
+      alert(
+        "Não foi possível atualizar a rodada."
+      );
+
+      return false;
+    }
+
+
+    /*
+      Atualiza o grupo atual.
+    */
+
+    state.grupoAtual =
+      data;
+
+
+    /*
+      Atualiza a interface.
+    */
+
+    atualizarCabecaGrupo();
+
+
+    return true;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao atualizar rodada:",
+      erro
+    );
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   10. AVANÇAR RODADA
+   ========================================================= */
+
+async function avancarRodada() {
+
+  if (
+    !state.user ||
+    !state.grupoAtual
+  ) {
+
+    alert(
+      "Abra uma Kixikila primeiro."
+    );
+
+    return;
+  }
+
+
+  /*
+    Apenas o utilizador cuja vez está ativa
+    poderá avançar a rodada.
+
+    A regra financeira completa será tratada
+    na parte das transações.
+  */
+
+  if (!ehMinhaVez()) {
+
+    alert(
+      "Ainda não é a sua vez nesta Kixikila."
+    );
+
+    return;
+  }
+
+
+  const rodadaAtual =
+    numero(
+      state.grupoAtual.rodada_atual
+    ) || 1;
+
+
+  const totalRodadas =
+    numero(
+      state.grupoAtual.total_rodadas
+    ) ||
+    numero(
+      state.grupoAtual.max_membros
+    );
+
+
+  if (
+    rodadaAtual >=
+    totalRodadas
+  ) {
+
+    alert(
+      "Esta Kixikila já chegou à última rodada."
+    );
+
+    return;
+  }
+
+
+  const confirmar =
+    confirm(
+      "Confirmar avanço para a próxima rodada?"
+    );
+
+
+  if (!confirmar) {
+    return;
+  }
+
+
+  const sucesso =
+    await atualizarRodada(
+      state.grupoAtual.id,
+      rodadaAtual + 1
+    );
+
+
+  if (!sucesso) {
+    return;
+  }
+
+
+  /*
+    Recarregamos os participantes para
+    manter a interface sincronizada.
+  */
+
+  await carregarParticipantesGrupo(
+    state.grupoAtual.id
+  );
+
+
+  mostrarNotificacao(
+    "Rodada atualizada",
+    "A Kixikila avançou para a rodada " +
+    (rodadaAtual + 1) +
+    "."
+  );
+
+}
+
+
+/* =========================================================
+   11. EXPORTAR FUNÇÕES
+   ========================================================= */
+
+window.abrirGrupo =
+  abrirGrupo;
+
+window.carregarParticipantesGrupo =
+  carregarParticipantesGrupo;
+
+window.atualizarCabecaGrupo =
+  atualizarCabecaGrupo;
+
+window.ehMinhaVez =
+  ehMinhaVez;
+
+window.avancarRodada =
+  avancarRodada;
+
+
+/* =========================================================
+   FIM DA PARTE 7
+   ========================================================= */
