@@ -2403,3 +2403,1324 @@ window.atualizarPlanoGrupo =
    FIM DA PARTE 4
    ========================================================= */
 
+/* =========================================================
+   KIXAPP
+   PARTE 5 — CRIAÇÃO E CARREGAMENTO DE GRUPOS
+   ========================================================= */
+
+
+/* =========================================================
+   1. CRIAR GRUPO
+   ========================================================= */
+
+async function criarGrupo() {
+
+  if (!state.user) {
+
+    alert(
+      "Sessão não encontrada. Entre novamente."
+    );
+
+    return;
+  }
+
+
+  /*
+    Confirma se o utilizador ainda pode
+    criar um grupo pelo seu plano.
+  */
+
+  if (!podeCriarGrupo()) {
+
+    alert(
+      "Você atingiu o limite de grupos do seu plano."
+    );
+
+    atualizarPlanoGrupo();
+
+    return;
+  }
+
+
+  const nome =
+    el("novoGrupoNome")?.value.trim();
+
+
+  const valor =
+    numero(
+      el("novoGrupoValor")?.value
+    );
+
+
+  const tipo =
+    el("novoGrupoTipo")?.value;
+
+
+  const membros =
+    numero(
+      el("novoGrupoMembros")?.value
+    );
+
+
+  /* -------------------------------------------------------
+     Validações
+     ------------------------------------------------------- */
+
+  if (!nome) {
+
+    alert(
+      "Digite o nome do grupo."
+    );
+
+    return;
+  }
+
+
+  if (!valor || valor <= 0) {
+
+    alert(
+      "Digite um valor válido."
+    );
+
+    return;
+  }
+
+
+  if (membros < 2 || membros > 10) {
+
+    alert(
+      "O grupo deve ter entre 2 e 10 participantes."
+    );
+
+    return;
+  }
+
+
+  /*
+    Localiza o botão de criação.
+  */
+
+  const botao =
+    document.querySelector(
+      '#criarGrupoBox button[onclick="criarGrupo()"]'
+    );
+
+
+  if (botao) {
+
+    botao.disabled = true;
+
+    botao.innerText =
+      "A criar grupo...";
+
+  }
+
+
+  try {
+
+    /*
+      A criação continua sendo feita pela
+      função RPC existente no teu Supabase.
+    */
+
+    const {
+      data,
+      error
+    } = await client.rpc(
+      "criar_grupo_kixapp",
+      {
+        p_nome: nome,
+        p_valor: valor,
+        p_tipo: tipo,
+        p_max_membros: membros
+      }
+    );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao criar grupo:",
+        error
+      );
+
+      alert(
+        error.message ||
+        "Não foi possível criar o grupo."
+      );
+
+      return;
+    }
+
+
+    console.log(
+      "Grupo criado:",
+      data
+    );
+
+
+    /*
+      Atualiza imediatamente os dados
+      relacionados aos grupos.
+    */
+
+    await carregarMeusGrupos();
+
+    await calcularGruposUsados();
+
+
+    /*
+      Atualiza o plano e o limite.
+    */
+
+    atualizarPlanoGrupo();
+
+
+    /*
+      Atualiza grupos disponíveis.
+    */
+
+    await carregarGruposDisponiveis();
+
+
+    /*
+      Limpa o formulário.
+    */
+
+    const campoNome =
+      el("novoGrupoNome");
+
+    const campoValor =
+      el("novoGrupoValor");
+
+    const campoMembros =
+      el("novoGrupoMembros");
+
+
+    if (campoNome) {
+
+      campoNome.value = "";
+
+    }
+
+
+    if (campoValor) {
+
+      campoValor.value = "";
+
+    }
+
+
+    if (campoMembros) {
+
+      campoMembros.value = "2";
+
+    }
+
+
+    /*
+      Fecha a caixa.
+    */
+
+    fecharCriarGrupo();
+
+
+    mostrarNotificacao(
+      "Kixikila criada",
+      "O grupo foi criado com sucesso e já está disponível em Meus grupos."
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao criar grupo:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao criar o grupo."
+    );
+
+  } finally {
+
+    if (botao) {
+
+      botao.disabled =
+        !podeCriarGrupo();
+
+      botao.innerText =
+        podeCriarGrupo()
+          ? "Criar grupo"
+          : "Limite do plano atingido";
+
+    }
+
+  }
+
+}
+
+
+/* =========================================================
+   2. CARREGAR GRUPOS DISPONÍVEIS
+   ========================================================= */
+
+async function carregarGruposDisponiveis() {
+
+  const container =
+    el("listaGruposPublicos");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!state.user) {
+
+    container.innerHTML =
+      "Entre na sua conta para procurar grupos.";
+
+    return;
+  }
+
+
+  container.innerHTML =
+    "A procurar grupos disponíveis...";
+
+
+  try {
+
+    const {
+      data: grupos,
+      error
+    } = await client
+      .from("groups")
+      .select(`
+        id,
+        nome,
+        valor,
+        tipo,
+        max_membros,
+        rodada_atual,
+        total_rodadas,
+        status,
+        privado
+      `)
+      .eq("privado", false)
+      .eq("status", "aberto")
+      .order("valor", {
+        ascending: true
+      });
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar grupos públicos:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar os grupos.";
+
+      return;
+    }
+
+
+    if (
+      !grupos ||
+      grupos.length === 0
+    ) {
+
+      container.innerHTML =
+        "Neste momento não existem grupos disponíveis.";
+
+      state.gruposDisponiveis = [];
+
+      return;
+    }
+
+
+    state.gruposDisponiveis = [];
+
+
+    let html = "";
+
+
+    for (const grupo of grupos) {
+
+      /*
+        Conta os participantes atuais
+        de cada grupo.
+      */
+
+      const {
+        count,
+        error: erroContagem
+      } = await client
+        .from("group_members")
+        .select("*", {
+          count: "exact",
+          head: true
+        })
+        .eq(
+          "group_id",
+          grupo.id
+        );
+
+
+      if (erroContagem) {
+
+        console.error(
+          "Erro ao contar participantes:",
+          erroContagem
+        );
+
+        continue;
+      }
+
+
+      const quantidade =
+        count || 0;
+
+
+      const maxMembros =
+        numero(
+          grupo.max_membros
+        );
+
+
+      const vagas =
+        maxMembros - quantidade;
+
+
+      /*
+        Grupo cheio não aparece
+        como disponível.
+      */
+
+      if (vagas <= 0) {
+        continue;
+      }
+
+
+      /*
+        Guardamos os dados no estado.
+      */
+
+      state.gruposDisponiveis.push({
+
+        ...grupo,
+
+        quantidade,
+
+        vagas
+
+      });
+
+
+      html += `
+        <div
+          class="grupo-card"
+          data-tipo="${grupo.tipo || ""}"
+        >
+
+          <b>${grupo.nome}</b>
+
+          <br><br>
+
+          Contribuição:
+          <strong>
+            ${formatarKz(grupo.valor)}
+          </strong>
+
+          <br>
+
+          Periodicidade:
+          ${grupo.tipo || "Não definida"}
+
+          <br>
+
+          Participantes:
+          ${quantidade}/${maxMembros}
+
+          <br>
+
+          Vagas disponíveis:
+          ${vagas}
+
+          <br><br>
+
+          <button
+            onclick="entrarGrupo(${grupo.id})"
+            style="
+              width:100%;
+              padding:10px;
+              border:none;
+              border-radius:8px;
+              background:#1e3a8a;
+              color:white;
+              cursor:pointer;
+            "
+          >
+            Entrar no grupo
+          </button>
+
+        </div>
+      `;
+
+    }
+
+
+    container.innerHTML =
+      html ||
+      "Neste momento não existem grupos com vagas.";
+
+
+    /*
+      Reaplica o filtro atual, se existir.
+    */
+
+    if (state.filtroGrupo) {
+
+      filtrar(
+        state.filtroGrupo
+      );
+
+    }
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao carregar grupos:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar os grupos.";
+
+  }
+
+}
+
+
+/* =========================================================
+   3. CARREGAR MEUS GRUPOS
+   ========================================================= */
+
+async function carregarMeusGrupos() {
+
+  const container =
+    el("listaMeusGrupos");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  if (!state.user) {
+
+    container.innerHTML =
+      "Entre na sua conta para ver os seus grupos.";
+
+    return;
+  }
+
+
+  container.innerHTML =
+    "A carregar os seus grupos...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("group_members")
+      .select(`
+        group_id,
+        groups (
+          id,
+          nome,
+          valor,
+          tipo,
+          max_membros,
+          rodada_atual,
+          total_rodadas,
+          status,
+          privado
+        )
+      `)
+      .eq(
+        "user_id",
+        state.user.id
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar meus grupos:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar os seus grupos.";
+
+      return;
+    }
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      state.meusGrupos = [];
+
+
+      container.innerHTML =
+        "Você ainda não participa de nenhuma Kixikila.";
+
+      await calcularGruposUsados();
+
+      atualizarPlanoGrupo();
+
+      return;
+    }
+
+
+    state.meusGrupos = [];
+
+
+    let html = "";
+
+
+    for (const item of data) {
+
+      const grupo =
+        item.groups;
+
+
+      if (!grupo) {
+        continue;
+      }
+
+
+      /*
+        Guardamos o grupo no estado.
+      */
+
+      state.meusGrupos.push(
+        grupo
+      );
+
+
+      const rodadaAtual =
+        numero(
+          grupo.rodada_atual
+        ) || 1;
+
+
+      const totalRodadas =
+        numero(
+          grupo.total_rodadas
+        ) ||
+        numero(
+          grupo.max_membros
+        );
+
+
+      html += `
+        <div
+          class="grupo-card"
+          data-tipo="${grupo.tipo || ""}"
+        >
+
+          <b>${grupo.nome}</b>
+
+          <br><br>
+
+          ${formatarKz(grupo.valor)}
+          /
+          ${grupo.tipo || ""}
+
+          <br>
+
+          Rodada:
+          ${rodadaAtual}
+          /
+          ${totalRodadas}
+
+          <br>
+
+          Estado:
+          ${grupo.status || "desconhecido"}
+
+          <br><br>
+
+          <button
+            onclick="abrirGrupo(${grupo.id})"
+            style="
+              width:100%;
+              padding:10px;
+              border:none;
+              border-radius:8px;
+              background:#1e3a8a;
+              color:white;
+              cursor:pointer;
+            "
+          >
+            Abrir grupo
+          </button>
+
+        </div>
+      `;
+
+    }
+
+
+    container.innerHTML =
+      html ||
+      "Você ainda não participa de nenhuma Kixikila.";
+
+
+    /*
+      Atualiza o contador de grupos.
+    */
+
+    state.gruposUsados =
+      state.meusGrupos.length;
+
+
+    atualizarPlanoGrupo();
+
+
+    /*
+      Reaplica filtro.
+    */
+
+    if (state.filtroGrupo) {
+
+      filtrar(
+        state.filtroGrupo
+      );
+
+    }
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao carregar meus grupos:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar os seus grupos.";
+
+  }
+
+}
+
+
+/* =========================================================
+   4. EXPORTAR FUNÇÕES
+   ========================================================= */
+
+window.criarGrupo =
+  criarGrupo;
+
+window.carregarGruposDisponiveis =
+  carregarGruposDisponiveis;
+
+window.carregarMeusGrupos =
+  carregarMeusGrupos;
+
+
+/* =========================================================
+   FIM DA PARTE 5
+   ========================================================= */
+
+  /* =========================================================
+   KIXAPP
+   PARTE 6 — ENTRAR E SAIR DE GRUPOS
+   ========================================================= */
+
+
+/* =========================================================
+   1. ENTRAR NO GRUPO
+   ========================================================= */
+
+async function entrarGrupo(groupId) {
+
+  if (!state.user) {
+
+    alert(
+      "Sessão não encontrada. Entre novamente."
+    );
+
+    return;
+  }
+
+
+  if (!groupId) {
+
+    alert(
+      "Grupo inválido."
+    );
+
+    return;
+  }
+
+
+  try {
+
+    /*
+      Procuramos o grupo.
+    */
+
+    const {
+      data: grupo,
+      error: erroGrupo
+    } = await client
+      .from("groups")
+      .select("*")
+      .eq("id", groupId)
+      .single();
+
+
+    if (erroGrupo) {
+
+      console.error(
+        "Erro ao procurar grupo:",
+        erroGrupo
+      );
+
+      alert(
+        "Não foi possível encontrar o grupo."
+      );
+
+      return;
+    }
+
+
+    if (!grupo) {
+
+      alert(
+        "Grupo não encontrado."
+      );
+
+      return;
+    }
+
+
+    /*
+      Verifica se o grupo ainda está aberto.
+    */
+
+    if (grupo.status !== "aberto") {
+
+      alert(
+        "Este grupo não está disponível para entrada."
+      );
+
+      await carregarGruposDisponiveis();
+
+      return;
+    }
+
+
+    /*
+      Verifica o saldo atual.
+    */
+
+    const saldo =
+      numero(
+        state.profile?.saldo
+      );
+
+
+    const valorGrupo =
+      numero(
+        grupo.valor
+      );
+
+
+    if (saldo < valorGrupo) {
+
+      alert(
+        "Saldo insuficiente. " +
+        "Você precisa de " +
+        formatarKz(valorGrupo) +
+        " para entrar neste grupo."
+      );
+
+      return;
+    }
+
+
+    /*
+      Verifica se o utilizador já pertence
+      ao grupo.
+    */
+
+    const {
+      data: membroExistente,
+      error: erroMembro
+    } = await client
+      .from("group_members")
+      .select("group_id")
+      .eq(
+        "group_id",
+        groupId
+      )
+      .eq(
+        "user_id",
+        state.user.id
+      )
+      .maybeSingle();
+
+
+    if (erroMembro) {
+
+      console.error(
+        "Erro ao verificar membro:",
+        erroMembro
+      );
+
+      alert(
+        "Não foi possível verificar a sua participação."
+      );
+
+      return;
+    }
+
+
+    if (membroExistente) {
+
+      alert(
+        "Você já participa deste grupo."
+      );
+
+      return;
+    }
+
+
+    /*
+      Conta os membros atuais.
+    */
+
+    const {
+      count,
+      error: erroContagem
+    } = await client
+      .from("group_members")
+      .select("*", {
+        count: "exact",
+        head: true
+      })
+      .eq(
+        "group_id",
+        groupId
+      );
+
+
+    if (erroContagem) {
+
+      console.error(
+        "Erro ao contar membros:",
+        erroContagem
+      );
+
+      alert(
+        "Não foi possível verificar as vagas."
+      );
+
+      return;
+    }
+
+
+    const quantidade =
+      count || 0;
+
+
+    const maxMembros =
+      numero(
+        grupo.max_membros
+      );
+
+
+    if (
+      quantidade >= maxMembros
+    ) {
+
+      alert(
+        "Este grupo já está cheio."
+      );
+
+      await carregarGruposDisponiveis();
+
+      return;
+    }
+
+
+    /*
+      Confirmação antes de entrar.
+    */
+
+    const confirmar =
+      confirm(
+        "Entrar nesta Kixikila?\n\n" +
+        "Grupo: " +
+        grupo.nome +
+        "\n" +
+        "Contribuição: " +
+        formatarKz(valorGrupo)
+      );
+
+
+    if (!confirmar) {
+
+      return;
+    }
+
+
+    /*
+      Insere o utilizador no grupo.
+    */
+
+    const {
+      error: erroEntrada
+    } = await client
+      .from("group_members")
+      .insert({
+
+        group_id: groupId,
+
+        user_id: state.user.id
+
+      });
+
+
+    if (erroEntrada) {
+
+      console.error(
+        "Erro ao entrar no grupo:",
+        erroEntrada
+      );
+
+      alert(
+        erroEntrada.message ||
+        "Não foi possível entrar no grupo."
+      );
+
+      return;
+    }
+
+
+    /*
+      Desconta o valor da contribuição
+      do saldo do utilizador.
+    */
+
+    const novoSaldo =
+      saldo - valorGrupo;
+
+
+    const {
+      data: perfilAtualizado,
+      error: erroSaldo
+    } = await client
+      .from("profiles")
+      .update({
+
+        saldo: novoSaldo
+
+      })
+      .eq(
+        "id",
+        state.user.id
+      )
+      .select("*")
+      .single();
+
+
+    if (erroSaldo) {
+
+      /*
+        A entrada já foi criada.
+        Por isso não escondemos o erro.
+      */
+
+      console.error(
+        "Erro ao atualizar saldo:",
+        erroSaldo
+      );
+
+      alert(
+        "Você entrou no grupo, mas ocorreu um erro ao atualizar o saldo. " +
+        "Verifique o seu saldo e as transações."
+      );
+
+    } else {
+
+      state.profile =
+        perfilAtualizado;
+
+    }
+
+
+    /*
+      Recarrega os dados.
+    */
+
+    await carregarMeusGrupos();
+
+    await carregarGruposDisponiveis();
+
+    await calcularGruposUsados();
+
+    atualizarUI();
+
+
+    mostrarNotificacao(
+      "Entrada confirmada",
+      "Você entrou na Kixikila " +
+      grupo.nome +
+      "."
+    );
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao entrar no grupo:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao entrar no grupo."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   2. SAIR DO GRUPO
+   ========================================================= */
+
+async function sairGrupo(groupId) {
+
+  if (!state.user) {
+
+    alert(
+      "Sessão não encontrada."
+    );
+
+    return;
+  }
+
+
+  if (!groupId) {
+
+    alert(
+      "Grupo inválido."
+    );
+
+    return;
+  }
+
+
+  try {
+
+    /*
+      Procuramos os dados do grupo.
+    */
+
+    const {
+      data: grupo,
+      error: erroGrupo
+    } = await client
+      .from("groups")
+      .select("*")
+      .eq(
+        "id",
+        groupId
+      )
+      .single();
+
+
+    if (erroGrupo) {
+
+      console.error(
+        "Erro ao procurar grupo:",
+        erroGrupo
+      );
+
+      alert(
+        "Não foi possível encontrar o grupo."
+      );
+
+      return;
+    }
+
+
+    /*
+      Confirmamos que o utilizador realmente
+      pertence ao grupo.
+    */
+
+    const {
+      data: membro,
+      error: erroMembro
+    } = await client
+      .from("group_members")
+      .select("*")
+      .eq(
+        "group_id",
+        groupId
+      )
+      .eq(
+        "user_id",
+        state.user.id
+      )
+      .maybeSingle();
+
+
+    if (erroMembro) {
+
+      console.error(
+        "Erro ao verificar participação:",
+        erroMembro
+      );
+
+      alert(
+        "Não foi possível verificar a sua participação."
+      );
+
+      return;
+    }
+
+
+    if (!membro) {
+
+      alert(
+        "Você não participa deste grupo."
+      );
+
+      return;
+    }
+
+
+    /*
+      Aviso importante antes da saída.
+    */
+
+    const confirmar =
+      confirm(
+        "Tem certeza que deseja sair desta Kixikila?\n\n" +
+        "Grupo: " +
+        grupo.nome +
+        "\n\n" +
+        "O valor já pago não será automaticamente devolvido."
+      );
+
+
+    if (!confirmar) {
+
+      return;
+    }
+
+
+    /*
+      Remove o membro.
+    */
+
+    const {
+      error: erroSaida
+    } = await client
+      .from("group_members")
+      .delete()
+      .eq(
+        "group_id",
+        groupId
+      )
+      .eq(
+        "user_id",
+        state.user.id
+      );
+
+
+    if (erroSaida) {
+
+      console.error(
+        "Erro ao sair do grupo:",
+        erroSaida
+      );
+
+      alert(
+        erroSaida.message ||
+        "Não foi possível sair do grupo."
+      );
+
+      return;
+    }
+
+
+    /*
+      Atualiza os dados da aplicação.
+    */
+
+    await carregarMeusGrupos();
+
+    await carregarGruposDisponiveis();
+
+    await calcularGruposUsados();
+
+    atualizarUI();
+
+
+    mostrarNotificacao(
+      "Grupo abandonado",
+      "Você saiu da Kixikila " +
+      grupo.nome +
+      "."
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao sair do grupo:",
+      erro
+    );
+
+    alert(
+      "Ocorreu um erro ao sair do grupo."
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   3. EXPORTAR FUNÇÕES
+   ========================================================= */
+
+window.entrarGrupo =
+  entrarGrupo;
+
+window.sairGrupo =
+  sairGrupo;
+
+
+/* =========================================================
+   FIM DA PARTE 6
+   ========================================================= */
