@@ -6592,3 +6592,507 @@ window.atualizarAcessoAdmin =
 /* =========================================================
    FIM DA PARTE 9
    ========================================================= */
+
+  /* =========================================================
+   KIXAPP
+   PARTE 10 — FINALIZAÇÃO E INICIALIZAÇÃO
+   ========================================================= */
+
+
+/* =========================================================
+   1. ATUALIZAR TUDO
+   ========================================================= */
+
+async function atualizarTudo() {
+
+  if (!state.user) {
+    return;
+  }
+
+
+  try {
+
+    /*
+      Atualiza o perfil e saldo.
+    */
+
+    await sincronizarSaldo();
+
+
+    /*
+      Verifica permissões administrativas.
+    */
+
+    await verificarAdministrador();
+
+
+    /*
+      Atualiza acesso ao painel admin.
+    */
+
+    await atualizarAcessoAdmin();
+
+
+    /*
+      Carrega os grupos do utilizador.
+    */
+
+    await carregarMeusGrupos();
+
+
+    /*
+      Carrega grupos públicos.
+    */
+
+    await carregarGruposDisponiveis();
+
+
+    /*
+      Atualiza contagem de grupos usados.
+    */
+
+    await calcularGruposUsados();
+
+
+    /*
+      Atualiza a interface.
+    */
+
+    atualizarUI();
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao atualizar aplicação:",
+      erro
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   2. INICIALIZAÇÃO DO UTILIZADOR
+   ========================================================= */
+
+async function inicializarUsuario() {
+
+  if (!state.user) {
+    return;
+  }
+
+
+  try {
+
+    /*
+      Primeiro carregamos o perfil.
+    */
+
+    await carregarPerfil();
+
+
+    /*
+      Depois verificamos o administrador.
+    */
+
+    await verificarAdministrador();
+
+
+    /*
+      Atualizamos o acesso administrativo.
+    */
+
+    await atualizarAcessoAdmin();
+
+
+    /*
+      Carregamos os grupos.
+    */
+
+    await carregarMeusGrupos();
+
+    await carregarGruposDisponiveis();
+
+
+    /*
+      Calculamos os grupos usados.
+    */
+
+    await calcularGruposUsados();
+
+
+    /*
+      Atualizamos a interface.
+    */
+
+    atualizarUI();
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao inicializar utilizador:",
+      erro
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   3. VERIFICAR SESSÃO
+   ========================================================= */
+
+async function verificarSessao() {
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client.auth.getSession();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao verificar sessão:",
+        error
+      );
+
+      return;
+    }
+
+
+    const sessao =
+      data?.session;
+
+
+    if (!sessao?.user) {
+
+      state.user =
+        null;
+
+      state.profile =
+        null;
+
+      state.isAdmin =
+        false;
+
+      state.adminRole =
+        null;
+
+
+      /*
+        Mostra a página inicial/login.
+      */
+
+      mostrarPagina(
+        "login"
+      );
+
+
+      return;
+    }
+
+
+    /*
+      Guardamos o utilizador.
+    */
+
+    state.user =
+      sessao.user;
+
+
+    /*
+      Inicializamos os dados.
+    */
+
+    await inicializarUsuario();
+
+
+    /*
+      Mostra a página principal.
+    */
+
+    mostrarPagina(
+      "home"
+    );
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao verificar sessão:",
+      erro
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   4. OUVIR ALTERAÇÕES DE AUTENTICAÇÃO
+   ========================================================= */
+
+client.auth.onAuthStateChange(
+  async (event, session) => {
+
+    console.log(
+      "Auth:",
+      event
+    );
+
+
+    /*
+      LOGIN
+    */
+
+    if (
+      event ===
+      "SIGNED_IN"
+    ) {
+
+      state.user =
+        session?.user ||
+        null;
+
+
+      if (state.user) {
+
+        await inicializarUsuario();
+
+        mostrarPagina(
+          "home"
+        );
+
+      }
+
+      return;
+    }
+
+
+    /*
+      LOGOUT
+    */
+
+    if (
+      event ===
+      "SIGNED_OUT"
+    ) {
+
+      state.user =
+        null;
+
+      state.profile =
+        null;
+
+      state.isAdmin =
+        false;
+
+      state.adminRole =
+        null;
+
+      state.grupoAtual =
+        null;
+
+
+      mostrarPagina(
+        "login"
+      );
+
+
+      return;
+    }
+
+
+    /*
+      TOKEN ATUALIZADO
+    */
+
+    if (
+      event ===
+      "TOKEN_REFRESHED"
+    ) {
+
+      state.user =
+        session?.user ||
+        state.user ||
+        null;
+
+
+      if (state.user) {
+
+        await sincronizarSaldo();
+
+      }
+
+    }
+
+  }
+);
+
+
+/* =========================================================
+   5. RECARREGAR DADOS QUANDO A PÁGINA VOLTA AO FOCO
+   ========================================================= */
+
+document.addEventListener(
+  "visibilitychange",
+  async () => {
+
+    if (
+      document.visibilityState !==
+      "visible"
+    ) {
+
+      return;
+
+    }
+
+
+    if (!state.user) {
+      return;
+    }
+
+
+    /*
+      Atualiza somente quando o utilizador
+      volta para a aplicação.
+    */
+
+    await atualizarTudo();
+
+  }
+);
+
+
+/* =========================================================
+   6. ATUALIZAÇÃO AUTOMÁTICA
+   ========================================================= */
+
+let intervaloAtualizacao =
+  null;
+
+
+function iniciarAtualizacaoAutomatica() {
+
+  /*
+    Evita criar vários intervalos.
+  */
+
+  if (
+    intervaloAtualizacao
+  ) {
+
+    clearInterval(
+      intervaloAtualizacao
+    );
+
+  }
+
+
+  intervaloAtualizacao =
+    setInterval(
+      async () => {
+
+        if (!state.user) {
+          return;
+        }
+
+
+        await sincronizarSaldo();
+
+
+        await carregarMeusGrupos();
+
+
+        await calcularGruposUsados();
+
+
+        atualizarUI();
+
+      },
+      30000
+    );
+
+}
+
+
+/* =========================================================
+   7. PARAR ATUALIZAÇÃO AUTOMÁTICA
+   ========================================================= */
+
+function pararAtualizacaoAutomatica() {
+
+  if (
+    intervaloAtualizacao
+  ) {
+
+    clearInterval(
+      intervaloAtualizacao
+    );
+
+    intervaloAtualizacao =
+      null;
+
+  }
+
+}
+
+
+/* =========================================================
+   8. INICIAR APLICAÇÃO
+   ========================================================= */
+
+window.addEventListener(
+  "DOMContentLoaded",
+  async () => {
+
+    console.log(
+      "KixApp: iniciando..."
+    );
+
+
+    await verificarSessao();
+
+
+    iniciarAtualizacaoAutomatica();
+
+
+    console.log(
+      "KixApp: aplicação iniciada."
+    );
+
+  }
+);
+
+
+/* =========================================================
+   9. EXPORTAÇÃO FINAL
+   ========================================================= */
+
+window.atualizarTudo =
+  atualizarTudo;
+
+window.inicializarUsuario =
+  inicializarUsuario;
+
+window.verificarSessao =
+  verificarSessao;
+
+window.iniciarAtualizacaoAutomatica =
+  iniciarAtualizacaoAutomatica;
+
+window.pararAtualizacaoAutomatica =
+  pararAtualizacaoAutomatica;
+
+
+/* =========================================================
+   FIM DO JAVASCRIPT
+   ========================================================= */
+  </script>
