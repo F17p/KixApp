@@ -5577,3 +5577,1018 @@ window.abrirHistorico =
 /* =========================================================
    FIM DA PARTE 8
    ========================================================= */
+
+  /* =========================================================
+   KIXAPP
+   PARTE 9 — ADMINISTRAÇÃO
+   ========================================================= */
+
+
+/* =========================================================
+   1. ESTADO DO ADMIN
+   ========================================================= */
+
+state.isAdmin = false;
+
+state.adminRole = null;
+
+
+/* =========================================================
+   2. VERIFICAR ADMINISTRADOR
+   ========================================================= */
+
+async function verificarAdministrador() {
+
+  if (!state.user) {
+
+    state.isAdmin = false;
+
+    state.adminRole = null;
+
+    return false;
+  }
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("admin_users")
+      .select(`
+        user_id,
+        role
+      `)
+      .eq(
+        "user_id",
+        state.user.id
+      )
+      .maybeSingle();
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao verificar administrador:",
+        error
+      );
+
+      state.isAdmin = false;
+
+      state.adminRole = null;
+
+      return false;
+    }
+
+
+    if (!data) {
+
+      state.isAdmin = false;
+
+      state.adminRole = null;
+
+      return false;
+    }
+
+
+    state.isAdmin = true;
+
+    state.adminRole =
+      data.role || "admin";
+
+
+    return true;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado ao verificar administrador:",
+      erro
+    );
+
+    state.isAdmin = false;
+
+    state.adminRole = null;
+
+    return false;
+
+  }
+
+}
+
+
+/* =========================================================
+   3. EXIGIR ACESSO ADMIN
+   ========================================================= */
+
+async function exigirAdmin() {
+
+  const admin =
+    await verificarAdministrador();
+
+
+  if (!admin) {
+
+    alert(
+      "Sem permissão de administrador."
+    );
+
+    mostrarPagina(
+      "home"
+    );
+
+    return false;
+  }
+
+
+  return true;
+
+}
+
+
+/* =========================================================
+   4. ABRIR PAINEL ADMIN
+   ========================================================= */
+
+async function abrirAdmin() {
+
+  const permitido =
+    await exigirAdmin();
+
+
+  if (!permitido) {
+    return;
+  }
+
+
+  mostrarPagina(
+    "admin"
+  );
+
+
+  await carregarDadosAdmin();
+
+}
+
+
+/* =========================================================
+   5. CARREGAR DADOS ADMINISTRATIVOS
+   ========================================================= */
+
+async function carregarDadosAdmin() {
+
+  const permitido =
+    await exigirAdmin();
+
+
+  if (!permitido) {
+    return;
+  }
+
+
+  /*
+    Elementos de estatísticas.
+  */
+
+  const totalUtilizadores =
+    el("adminTotalUtilizadores");
+
+  const totalGrupos =
+    el("adminTotalGrupos");
+
+  const gruposAbertos =
+    el("adminGruposAbertos");
+
+  const gruposConcluidos =
+    el("adminGruposConcluidos");
+
+
+  try {
+
+    /*
+      Total de utilizadores.
+    */
+
+    const {
+      count: utilizadores,
+      error: erroUtilizadores
+    } = await client
+      .from("profiles")
+      .select("*", {
+        count: "exact",
+        head: true
+      });
+
+
+    if (erroUtilizadores) {
+
+      console.error(
+        "Erro ao contar utilizadores:",
+        erroUtilizadores
+      );
+
+    }
+
+
+    /*
+      Total de grupos.
+    */
+
+    const {
+      count: grupos,
+      error: erroGrupos
+    } = await client
+      .from("groups")
+      .select("*", {
+        count: "exact",
+        head: true
+      });
+
+
+    if (erroGrupos) {
+
+      console.error(
+        "Erro ao contar grupos:",
+        erroGrupos
+      );
+
+    }
+
+
+    /*
+      Grupos abertos.
+    */
+
+    const {
+      count: abertos,
+      error: erroAbertos
+    } = await client
+      .from("groups")
+      .select("*", {
+        count: "exact",
+        head: true
+      })
+      .eq(
+        "status",
+        "aberto"
+      );
+
+
+    if (erroAbertos) {
+
+      console.error(
+        "Erro ao contar grupos abertos:",
+        erroAbertos
+      );
+
+    }
+
+
+    /*
+      Grupos concluídos.
+    */
+
+    const {
+      count: concluidos,
+      error: erroConcluidos
+    } = await client
+      .from("groups")
+      .select("*", {
+        count: "exact",
+        head: true
+      })
+      .eq(
+        "status",
+        "concluido"
+      );
+
+
+    if (erroConcluidos) {
+
+      console.error(
+        "Erro ao contar grupos concluídos:",
+        erroConcluidos
+      );
+
+    }
+
+
+    /*
+      Atualizamos a interface.
+    */
+
+    if (totalUtilizadores) {
+
+      totalUtilizadores.innerText =
+        utilizadores || 0;
+
+    }
+
+
+    if (totalGrupos) {
+
+      totalGrupos.innerText =
+        grupos || 0;
+
+    }
+
+
+    if (gruposAbertos) {
+
+      gruposAbertos.innerText =
+        abertos || 0;
+
+    }
+
+
+    if (gruposConcluidos) {
+
+      gruposConcluidos.innerText =
+        concluidos || 0;
+
+    }
+
+
+    /*
+      Carrega listas administrativas.
+    */
+
+    await carregarUtilizadoresAdmin();
+
+    await carregarGruposAdmin();
+
+    await carregarTransacoesAdmin();
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro ao carregar painel admin:",
+      erro
+    );
+
+  }
+
+}
+
+
+/* =========================================================
+   6. CARREGAR UTILIZADORES ADMIN
+   ========================================================= */
+
+async function carregarUtilizadoresAdmin() {
+
+  const container =
+    el("listaAdminUtilizadores");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const permitido =
+    await exigirAdmin();
+
+
+  if (!permitido) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "A carregar utilizadores...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("profiles")
+      .select(`
+        id,
+        nome,
+        email,
+        telefone,
+        saldo,
+        plano,
+        created_at
+      `)
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar utilizadores:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar os utilizadores.";
+
+      return;
+    }
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      container.innerHTML =
+        "Não existem utilizadores.";
+
+      return;
+    }
+
+
+    let html = "";
+
+
+    data.forEach(
+      utilizador => {
+
+        html += `
+          <div
+            class="admin-item"
+            style="
+              padding:12px;
+              margin-bottom:8px;
+              border-radius:10px;
+              background:#f8fafc;
+            "
+          >
+
+            <strong>
+              ${utilizador.nome || "Sem nome"}
+            </strong>
+
+            <br>
+
+            ${utilizador.email || ""}
+
+            <br>
+
+            Telefone:
+            ${utilizador.telefone || "Não informado"}
+
+            <br>
+
+            Saldo:
+            ${formatarKz(utilizador.saldo)}
+
+            <br>
+
+            Plano:
+            ${utilizador.plano || "Basic"}
+
+          </div>
+        `;
+
+      }
+    );
+
+
+    container.innerHTML =
+      html;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar os utilizadores.";
+
+  }
+
+}
+
+
+/* =========================================================
+   7. CARREGAR GRUPOS ADMIN
+   ========================================================= */
+
+async function carregarGruposAdmin() {
+
+  const container =
+    el("listaAdminGrupos");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const permitido =
+    await exigirAdmin();
+
+
+  if (!permitido) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "A carregar grupos...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("groups")
+      .select(`
+        id,
+        nome,
+        valor,
+        tipo,
+        max_membros,
+        rodada_atual,
+        total_rodadas,
+        status,
+        privado,
+        created_at
+      `)
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      );
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar grupos admin:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar os grupos.";
+
+      return;
+    }
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      container.innerHTML =
+        "Não existem grupos.";
+
+      return;
+    }
+
+
+    let html = "";
+
+
+    for (const grupo of data) {
+
+      const {
+        count
+      } = await client
+        .from("group_members")
+        .select("*", {
+          count: "exact",
+          head: true
+        })
+        .eq(
+          "group_id",
+          grupo.id
+        );
+
+
+      html += `
+        <div
+          class="admin-item"
+          style="
+            padding:12px;
+            margin-bottom:8px;
+            border-radius:10px;
+            background:#f8fafc;
+          "
+        >
+
+          <strong>
+            ${grupo.nome}
+          </strong>
+
+          <br>
+
+          Valor:
+          ${formatarKz(grupo.valor)}
+
+          <br>
+
+          Tipo:
+          ${grupo.tipo || ""}
+
+          <br>
+
+          Participantes:
+          ${count || 0}/${grupo.max_membros}
+
+          <br>
+
+          Rodada:
+          ${grupo.rodada_atual || 1}/
+          ${grupo.total_rodadas || grupo.max_membros}
+
+          <br>
+
+          Estado:
+          ${grupo.status}
+
+          <br><br>
+
+          <button
+            onclick="adminAtualizarStatusGrupo(${grupo.id})"
+            style="
+              padding:8px 12px;
+              border:none;
+              border-radius:8px;
+              cursor:pointer;
+            "
+          >
+            Alterar estado
+          </button>
+
+        </div>
+      `;
+
+    }
+
+
+    container.innerHTML =
+      html;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar os grupos.";
+
+  }
+
+}
+
+
+/* =========================================================
+   8. ALTERAR STATUS DO GRUPO
+   ========================================================= */
+
+async function adminAtualizarStatusGrupo(
+  groupId
+) {
+
+  const permitido =
+    await exigirAdmin();
+
+
+  if (!permitido) {
+    return;
+  }
+
+
+  const novoStatus =
+    prompt(
+      "Digite o novo estado do grupo:\n\n" +
+      "aberto\n" +
+      "fechado\n" +
+      "concluido"
+    );
+
+
+  if (!novoStatus) {
+    return;
+  }
+
+
+  const status =
+    novoStatus
+      .trim()
+      .toLowerCase();
+
+
+  const estadosPermitidos = [
+    "aberto",
+    "fechado",
+    "concluido"
+  ];
+
+
+  if (
+    !estadosPermitidos.includes(
+      status
+    )
+  ) {
+
+    alert(
+      "Estado inválido."
+    );
+
+    return;
+  }
+
+
+  const {
+    error
+  } = await client
+    .from("groups")
+    .update({
+
+      status: status
+
+    })
+    .eq(
+      "id",
+      groupId
+    );
+
+
+  if (error) {
+
+    console.error(
+      "Erro ao alterar estado:",
+      error
+    );
+
+    alert(
+      "Não foi possível alterar o estado."
+    );
+
+    return;
+  }
+
+
+  mostrarNotificacao(
+    "Grupo atualizado",
+    "O estado do grupo foi alterado."
+  );
+
+
+  await carregarDadosAdmin();
+
+}
+
+
+/* =========================================================
+   9. CARREGAR TRANSAÇÕES ADMIN
+   ========================================================= */
+
+async function carregarTransacoesAdmin() {
+
+  const container =
+    el("listaAdminTransacoes");
+
+
+  if (!container) {
+    return;
+  }
+
+
+  const permitido =
+    await exigirAdmin();
+
+
+  if (!permitido) {
+    return;
+  }
+
+
+  container.innerHTML =
+    "A carregar transações...";
+
+
+  try {
+
+    const {
+      data,
+      error
+    } = await client
+      .from("transactions")
+      .select(`
+        *,
+        profiles (
+          id,
+          nome,
+          email
+        ),
+        groups (
+          id,
+          nome
+        )
+      `)
+      .order(
+        "created_at",
+        {
+          ascending: false
+        }
+      )
+      .limit(100);
+
+
+    if (error) {
+
+      console.error(
+        "Erro ao carregar transações:",
+        error
+      );
+
+      container.innerHTML =
+        "Não foi possível carregar as transações.";
+
+      return;
+    }
+
+
+    if (
+      !data ||
+      data.length === 0
+    ) {
+
+      container.innerHTML =
+        "Não existem transações.";
+
+      return;
+    }
+
+
+    let html = "";
+
+
+    data.forEach(
+      transacao => {
+
+        const nome =
+          transacao.profiles?.nome ||
+          "Utilizador";
+
+
+        const grupo =
+          transacao.groups?.nome ||
+          "Sem grupo";
+
+
+        html += `
+          <div
+            class="admin-item"
+            style="
+              padding:12px;
+              margin-bottom:8px;
+              border-radius:10px;
+              background:#f8fafc;
+            "
+          >
+
+            <strong>
+              ${nome}
+            </strong>
+
+            <br>
+
+            ${transacao.tipo || ""}
+
+            <br>
+
+            ${formatarKz(transacao.valor)}
+
+            <br>
+
+            Grupo:
+            ${grupo}
+
+            <br>
+
+            ${transacao.descricao || ""}
+
+          </div>
+        `;
+
+      }
+    );
+
+
+    container.innerHTML =
+      html;
+
+
+  } catch (erro) {
+
+    console.error(
+      "Erro inesperado:",
+      erro
+    );
+
+    container.innerHTML =
+      "Não foi possível carregar as transações.";
+
+  }
+
+}
+
+
+/* =========================================================
+   10. MOSTRAR/OCULTAR ÁREA ADMIN
+   ========================================================= */
+
+async function atualizarAcessoAdmin() {
+
+  const admin =
+    await verificarAdministrador();
+
+
+  const elementos =
+    document.querySelectorAll(
+      "[data-admin-only]"
+    );
+
+
+  elementos.forEach(
+    elemento => {
+
+      elemento.style.display =
+        admin
+          ? ""
+          : "none";
+
+    }
+  );
+
+
+  const botaoAdmin =
+    el("btnAdmin");
+
+
+  if (botaoAdmin) {
+
+    botaoAdmin.style.display =
+      admin
+        ? ""
+        : "none";
+
+  }
+
+}
+
+
+/* =========================================================
+   11. EXPORTAR FUNÇÕES ADMIN
+   ========================================================= */
+
+window.verificarAdministrador =
+  verificarAdministrador;
+
+window.exigirAdmin =
+  exigirAdmin;
+
+window.abrirAdmin =
+  abrirAdmin;
+
+window.carregarDadosAdmin =
+  carregarDadosAdmin;
+
+window.carregarUtilizadoresAdmin =
+  carregarUtilizadoresAdmin;
+
+window.carregarGruposAdmin =
+  carregarGruposAdmin;
+
+window.adminAtualizarStatusGrupo =
+  adminAtualizarStatusGrupo;
+
+window.carregarTransacoesAdmin =
+  carregarTransacoesAdmin;
+
+window.atualizarAcessoAdmin =
+  atualizarAcessoAdmin;
+
+
+/* =========================================================
+   FIM DA PARTE 9
+   ========================================================= */
