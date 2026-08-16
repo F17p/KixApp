@@ -1,7098 +1,1315 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-AO">
 <head>
   <meta charset="UTF-8">
-  <title>KixApp Login</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#1e3a8a">
+  <meta name="description" content="KixApp — gestão de Kixikila e carteira digital">
+  <title>KixApp</title>
+
+  <!-- Supabase JS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <style>
-
-body{
-  margin:0;
-  padding:0;
-  background:#f4f6f8;
-  font-family:Arial,sans-serif;
-}
-
-#app{
-  padding:15px;
-  padding-bottom:80px;
-}
-
-.topbar{
-  background:white;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.card{
-  background:white;
-  padding:15px;
-  border-radius:12px;
-  margin-bottom:15px;
-  box-shadow:0 2px 8px rgba(0,0,0,0.08);
-}
-
-.saldo{
-  font-size:30px;
-  font-weight:bold;
-  color:#1e3a8a;
-}
-
-.input{
-  width:100%;
-  padding:12px;
-  box-sizing:border-box;
-  border:1px solid #ddd;
-  border-radius:8px;
-}
-
-.btn{
-  width:100%;
-  padding:12px;
-  border:none;
-  border-radius:8px;
-  background:#1e3a8a;
-  color:white;
-  margin-top:10px;
-}
-
-.grupo-card{
-  border:1px solid #ddd;
-  padding:12px;
-  margin-top:10px;
-  border-radius:10px;
-  background:white;
-}
-
-.menu{
-  position:fixed;
-  bottom:0;
-  left:0;
-  right:0;
-  background:white;
-  display:flex;
-  justify-content:space-around;
-  padding:10px;
-  border-top:1px solid #ddd;
-}
-
-.menu button{
-  border:none;
-  background:none;
-  font-size:14px;
-}
-
-#tabs button{
-  margin-right:5px;
-  padding:6px 10px;
-  border-radius:6px;
-  border:1px solid #ddd;
-  background:white;
-}
-
-    /* NOTIFICAÇÃO KIXAPP */
-
-.kix-toast-container{
-  position:fixed;
-  top:20px;
-  left:16px;
-  right:16px;
-  z-index:99999;
-  display:flex;
-  justify-content:center;
-  pointer-events:none;
-}
-
-.kix-toast{
-  width:100%;
-  max-width:420px;
-  background:#ffffff;
-  border:1px solid #e5e7eb;
-  border-radius:16px;
-  padding:16px;
-  box-shadow:0 12px 35px rgba(0,0,0,0.15);
-  display:flex;
-  align-items:center;
-  gap:12px;
-  transform:translateY(-30px);
-  opacity:0;
-  transition:all .25s ease;
-}
-
-.kix-toast.show{
-  transform:translateY(0);
-  opacity:1;
-}
-
-.kix-toast-icon{
-  width:38px;
-  height:38px;
-  border-radius:50%;
-  background:#ecfdf5;
-  color:#059669;
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  font-weight:bold;
-  font-size:18px;
-  flex-shrink:0;
-}
-
-.kix-toast-content{
-  flex:1;
-}
-
-.kix-toast-title{
-  font-size:15px;
-  font-weight:700;
-  color:#111827;
-  margin-bottom:3px;
-}
-
-.kix-toast-message{
-  font-size:13px;
-  color:#6b7280;
-}
-
-.kix-toast-close{
-  border:none;
-  background:none;
-  font-size:20px;
-  color:#9ca3af;
-  cursor:pointer;
-  padding:4px;
-}
-
+    *{box-sizing:border-box}
+    body{margin:0;background:#f4f6f8;color:#111827;font-family:Arial,sans-serif}
+    button,input,select{font:inherit}
+    button{cursor:pointer}
+    #app{max-width:760px;margin:auto;padding:14px 14px 88px}
+    #loginBox{max-width:420px;margin:70px auto;padding:22px}
+    .login-card,.card,.topbar{background:#fff;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.07)}
+    .login-card{padding:22px}
+    .topbar{padding:16px;margin-bottom:14px}
+    .topbar-row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+    .muted{color:#6b7280;font-size:14px}
+    .input{width:100%;padding:12px;border:1px solid #d1d5db;border-radius:10px;outline:none;background:#fff}
+    .input:focus{border-color:#1e3a8a}
+    .btn{width:100%;padding:12px;border:0;border-radius:10px;background:#1e3a8a;color:#fff;margin-top:10px;font-weight:600}
+    .btn.secondary{background:#fff;color:#1e3a8a;border:1px solid #d1d5db}
+    .btn.danger{background:#b91c1c}
+    .btn.small{width:auto;padding:8px 12px;margin-top:0}
+    .card{padding:16px;margin-bottom:14px}
+    .saldo{font-size:30px;font-weight:800;color:#1e3a8a}
+    .grid{display:grid;gap:12px}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .grupo-card{background:#fff;border:1px solid #e5e7eb;padding:14px;border-radius:14px;margin:10px 0}
+    .badge{display:inline-block;padding:5px 9px;border-radius:999px;background:#eef2ff;color:#1e3a8a;font-size:12px;font-weight:700}
+    .tabs{display:flex;gap:7px;overflow:auto;padding-bottom:4px}
+    .tabs button{white-space:nowrap;border:1px solid #d1d5db;background:#fff;border-radius:9px;padding:8px 11px}
+    .tabs button.active{background:#1e3a8a;color:#fff;border-color:#1e3a8a}
+    .page{display:none}
+    .page.active{display:block}
+    .menu{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #ddd;display:flex;justify-content:space-around;padding:9px 5px calc(9px + env(safe-area-inset-bottom));z-index:1000}
+    .menu button{border:0;background:none;font-size:12px;color:#374151;padding:5px}
+    .menu button.active{color:#1e3a8a;font-weight:800}
+    .kix-toast-container{position:fixed;top:16px;left:14px;right:14px;z-index:99999;display:flex;justify-content:center;pointer-events:none}
+    .kix-toast{width:100%;max-width:420px;background:#fff;border:1px solid #e5e7eb;border-radius:16px;padding:14px;box-shadow:0 12px 35px rgba(0,0,0,.15);display:flex;gap:10px;align-items:center;transform:translateY(-25px);opacity:0;transition:.25s}
+    .kix-toast.show{transform:translateY(0);opacity:1}
+    .kix-toast-icon{width:36px;height:36px;border-radius:50%;background:#ecfdf5;color:#059669;display:flex;align-items:center;justify-content:center;font-weight:bold;flex:none}
+    .kix-toast-content{flex:1}.kix-toast-title{font-weight:700}.kix-toast-message{font-size:13px;color:#6b7280;margin-top:2px}
+    .kix-toast-close{border:0;background:none;font-size:20px;color:#9ca3af}
+    .stat{background:#f8fafc;border-radius:12px;padding:12px}
+    .stat b{font-size:20px}
+    .empty{text-align:center;padding:18px;color:#6b7280}
+    .hidden{display:none!important}
+    @media(max-width:520px){.grid2{grid-template-columns:1fr}.saldo{font-size:27px}}
   </style>
 </head>
 
 <body>
 
+<!-- =========================================================
+     CONFIGURAÇÃO
+     IMPORTANTE: usa aqui os MESMOS dados Supabase do teu index antigo.
+     Não inventámos um projeto novo.
+     ========================================================= -->
+<script>
+const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";  
+  ";
+const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+</script>
+
+<!-- LOGIN -->
 <div id="loginBox">
+  <div class="login-card">
+    <h2>KixApp</h2>
+    <p class="muted">Entre na sua conta ou crie uma nova conta.</p>
 
-  <h2>Login KixApp</h2>
+    <input class="input" id="email" type="email" placeholder="Email">
+    <br><br>
+    <input class="input" id="password" type="password" placeholder="Senha">
 
-  <input id="email" placeholder="Email">
-  <br><br>
-
-  <input id="password" type="password" placeholder="Senha">
-  <br><br>
-
-  <button onclick="login()">Entrar</button>
-  <button onclick="signup()">Criar conta</button>
-
-  <p id="msg"></p>
-
+    <button class="btn" onclick="login()">Entrar</button>
+    <button class="btn secondary" onclick="signup()">Criar conta</button>
+    <p id="msg" class="muted"></p>
+  </div>
 </div>
 
 <!-- APP -->
-<div id="app" style="display:none;">
+<div id="app" style="display:none">
 
   <div class="topbar">
-    <h2>KixApp</h2>
+    <div class="topbar-row">
+      <div>
+        <strong>KixApp</strong>
+        <div id="userEmail" class="muted"></div>
+      </div>
+      <button id="btnAdmin" class="btn small hidden" onclick="abrirAdmin()">Admin</button>
+    </div>
   </div>
 
   <!-- INÍCIO -->
-  <div id="paginaInicio">
+  <section id="paginaInicio" class="page active">
 
     <div class="card">
-      <h3>Conta</h3>
-      <p id="userEmail"></p>
-    </div>
-
-    <div class="card">
-      <h3>Saldo Disponível</h3>
-
+      <div class="muted">Saldo disponível</div>
       <div class="saldo" id="userSaldo">0 Kz</div>
 
-      <br>
-
-      <input class="input" id="valorDeposito" type="number" placeholder="Digite o valor">
-
+      <input class="input" id="valorDeposito" type="number" min="1" placeholder="Digite o valor">
       <button class="btn" onclick="depositarValor()">Adicionar saldo</button>
-
     </div>
 
-  </div>
+    <div class="card">
+      <h3>Kixikila</h3>
+      <p class="muted">Escolha como deseja participar.</p>
+      <div class="grid">
+        <button class="btn" onclick="abrirCriarGrupo()">Criar uma Kixikila</button>
+        <button class="btn secondary" onclick="abrirPesquisarGrupos()">Pesquisar grupos</button>
+      </div>
+    </div>
+
+    <div id="criarGrupoBox" class="card hidden">
+      <h3>Criar uma Kixikila</h3>
+
+      <label>Nome do grupo</label>
+      <input class="input" id="novoGrupoNome" placeholder="Ex.: Kixikila da Família">
+
+      <br><br>
+      <label>Valor da contribuição</label>
+      <input class="input" id="novoGrupoValor" type="number" min="1" placeholder="Ex.: 5000">
+
+      <br><br>
+      <label>Periodicidade</label>
+      <select class="input" id="novoGrupoTipo">
+        <option value="semanal">Semanal</option>
+        <option value="mensal">Mensal</option>
+        <option value="trimestral">Trimestral</option>
+      </select>
+
+      <br><br>
+      <label>Participantes</label>
+      <select class="input" id="novoGrupoMembros" onchange="atualizarPlanoGrupo()">
+        <option value="2">2 pessoas</option><option value="3">3 pessoas</option>
+        <option value="4">4 pessoas</option><option value="5">5 pessoas</option>
+        <option value="6">6 pessoas</option><option value="7">7 pessoas</option>
+        <option value="8">8 pessoas</option><option value="9">9 pessoas</option>
+        <option value="10">10 pessoas</option>
+      </select>
+
+      <div id="planoGrupoInfo" class="stat" style="margin-top:12px">
+        Grupo gratuito até 5 participantes.
+      </div>
+
+      <button class="btn" onclick="criarGrupo()">Criar grupo</button>
+      <button class="btn secondary" onclick="fecharCriarGrupo()">Cancelar</button>
+      <p id="msgCriarGrupo" class="muted"></p>
+    </div>
+
+    <div id="pesquisarGruposBox" class="card hidden">
+      <h3>Pesquisar grupos</h3>
+      <p class="muted">Encontre Kixikilas abertas que ainda possuem vagas.</p>
+      <div class="tabs" id="tabsPublicos">
+        <button class="active" onclick="filtrarPublicos('todos',this)">Todos</button>
+        <button onclick="filtrarPublicos('semanal',this)">Semanal</button>
+        <button onclick="filtrarPublicos('mensal',this)">Mensal</button>
+        <button onclick="filtrarPublicos('trimestral',this)">Trimestral</button>
+      </div>
+      <div id="listaGruposPublicos">A procurar grupos disponíveis...</div>
+    </div>
+
+    <div class="card">
+      <h3>Plano atual</h3>
+      <div class="grid2">
+        <div class="stat"><div class="muted">Plano</div><b id="planoAtual">Basic</b></div>
+        <div class="stat"><div class="muted">Grupos usados</div><b><span id="gruposUsados">0</span> / <span id="gruposLimite">3</span></b></div>
+      </div>
+      <p id="planoStatus" class="muted">Status: Ativo</p>
+    </div>
+
+  </section>
 
   <!-- GRUPOS -->
-<div id="paginaGrupos" style="display:none;">
-
-  <div class="card">
-
-    <h3>Kixikila</h3>
-
-    <p style="color:#666;">
-      Escolha como deseja participar.
-    </p>
-
-    <div style="display:grid;gap:12px;margin-top:15px;">
-
-      <button
-        class="btn"
-        onclick="abrirCriarGrupo()"
-      >
-        Criar uma Kixikila
-      </button>
-
-      <button
-        class="btn"
-        onclick="abrirPesquisarGrupos()"
-      >
-        Pesquisar grupos
-      </button>
-
+  <section id="paginaGrupos" class="page">
+    <div class="card">
+      <h3>Meus grupos</h3>
+      <div class="tabs" id="tabsMeus">
+        <button class="active" onclick="filtrarMeus('todos',this)">Todos</button>
+        <button onclick="filtrarMeus('semanal',this)">Semanal</button>
+        <button onclick="filtrarMeus('mensal',this)">Mensal</button>
+        <button onclick="filtrarMeus('trimestral',this)">Trimestral</button>
+      </div>
+      <div id="listaMeusGrupos">Carregando...</div>
     </div>
 
-  </div>
+    <div id="grupoDetalhe" class="card hidden"></div>
+  </section>
 
-
-  <!-- CRIAR GRUPO -->
-
-  <div
-    id="criarGrupoBox"
-    class="card"
-    style="display:none;"
-  >
-
-    <h3>Criar uma Kixikila</h3>
-
-    <p style="color:#666;">
-      Crie um grupo para jogar com pessoas que você conhece.
-    </p>
-
-    <br>
-
-    <label>Nome do grupo</label>
-
-    <input
-      class="input"
-      id="novoGrupoNome"
-      placeholder="Ex.: Kixikila da Família"
-    >
-
-    <br><br>
-
-    <label>Valor da contribuição</label>
-
-    <input
-      class="input"
-      id="novoGrupoValor"
-      type="number"
-      placeholder="Ex.: 5000"
-    >
-
-    <br><br>
-
-    <label>Periodicidade</label>
-
-    <select
-      class="input"
-      id="novoGrupoTipo"
-    >
-      <option value="semanal">Semanal</option>
-      <option value="mensal">Mensal</option>
-      <option value="trimestral">Trimestral</option>
-    </select>
-
-    <br><br>
-
-    <label>Número de participantes</label>
-
-    <select
-      class="input"
-      id="novoGrupoMembros"
-      onchange="atualizarPlanoGrupo()"
-    >
-      <option value="2">2 pessoas</option>
-      <option value="3">3 pessoas</option>
-      <option value="4">4 pessoas</option>
-      <option value="5">5 pessoas</option>
-      <option value="6">6 pessoas</option>
-      <option value="7">7 pessoas</option>
-      <option value="8">8 pessoas</option>
-      <option value="9">9 pessoas</option>
-      <option value="10">10 pessoas</option>
-    </select>
-
-    <div
-      id="planoGrupoInfo"
-      style="
-        margin-top:15px;
-        padding:12px;
-        background:#f4f6f8;
-        border-radius:8px;
-      "
-    >
-      Grupo gratuito até 5 participantes.
-    </div>
-
-    <button
-      class="btn"
-      onclick="criarGrupo()"
-    >
-      Criar grupo
-    </button>
-
-    <button
-      style="
-        width:100%;
-        padding:12px;
-        margin-top:10px;
-        border:1px solid #ddd;
-        border-radius:8px;
-        background:white;
-      "
-      onclick="fecharCriarGrupo()"
-    >
-      Cancelar
-    </button>
-
-    <p id="msgCriarGrupo"></p>
-
-  </div>
-
-
-  <!-- PESQUISAR GRUPOS -->
-
-  <div
-    id="pesquisarGruposBox"
-    class="card"
-    style="display:none;"
-  >
-
-    <h3>Pesquisar grupos</h3>
-
-    <p style="color:#666;">
-      Encontre grupos KixApp que ainda possuem vagas.
-    </p>
-
-    <div id="listaGruposPublicos">
-      Carregando grupos disponíveis...
-    </div>
-
-  </div>
-
-
-  <!-- MEUS GRUPOS -->
-
-  <div class="card">
-
-    <h3>Meus grupos</h3>
-
-    <div id="listaMeusGrupos">
-      Carregando...
-    </div>
-
-  </div>
-
-</div>
-  
   <!-- HISTÓRICO -->
-  <div id="paginaHistorico" style="display:none;">
-
+  <section id="paginaHistorico" class="page">
     <div class="card">
       <h3>Histórico</h3>
-
-      <div id="historico">
-        Nenhuma transação.
-      </div>
-
+      <div id="historico">Nenhuma transação.</div>
     </div>
-
-  </div>
+  </section>
 
   <!-- PERFIL -->
-  <div id="paginaPerfil" style="display:none;">
-
+  <section id="paginaPerfil" class="page">
     <div class="card">
       <h3>Perfil</h3>
+      <p id="perfilNome">Sem nome</p>
+      <input class="input" id="inputNome" placeholder="Seu nome">
+      <button class="btn" onclick="salvarNome()">Salvar nome</button>
 
-      <input id="inputNome" placeholder="Seu nome">
-<button onclick="salvarNome()">Salvar nome</button>
+      <hr style="border:0;border-top:1px solid #eee;margin:18px 0">
 
-<p id="perfilNome"></p>
+      <p>Plano: <b id="perfilPlano">Basic</b></p>
+      <p>Telefone: <span id="perfilTelefone">Não informado</span></p>
 
-      <p>
-        Plano:
-        <span id="perfilPlano">Basic</span>
-      </p>
+      <button class="btn danger" onclick="logout()">Terminar sessão</button>
+    </div>
+  </section>
 
-      <div class="card">
-
-  <h3>💎 Plano Atual</h3>
-
-  <p>Plano: <span id="planoAtual">Basic</span></p>
-
-  <p>
-    Grupos usados:
-    <span id="gruposUsados">0</span> /
-    <span id="gruposLimite">3</span>
-  </p>
-
-  <p>Status: 🔵 Ativo</p>
-
+  <!-- ADMIN -->
+  <section id="paginaAdmin" class="page">
+    <div class="card">
+      <h3>Painel administrativo</h3>
+      <div class="grid2">
+        <div class="stat"><div class="muted">Utilizadores</div><b id="adminTotalUtilizadores">0</b></div>
+        <div class="stat"><div class="muted">Grupos</div><b id="adminTotalGrupos">0</b></div>
+        <div class="stat"><div class="muted">Abertos</div><b id="adminGruposAbertos">0</b></div>
+        <div class="stat"><div class="muted">Concluídos</div><b id="adminGruposConcluidos">0</b></div>
       </div>
-
-      <button class="btn" onclick="logout()">Terminar sessão</button>
-
     </div>
 
-  </div>
+    <div class="card">
+      <h3>Utilizadores</h3>
+      <div id="listaAdminUtilizadores">A carregar...</div>
+    </div>
 
-  <div class="menu">
+    <div class="card">
+      <h3>Grupos</h3>
+      <div id="listaAdminGrupos">A carregar...</div>
+    </div>
 
-    <button onclick="mostrarPagina('inicio')">Início</button>
-    <button onclick="mostrarPagina('grupos')">Grupos</button>
-    <button onclick="mostrarPagina('historico')">Histórico</button>
-    <button onclick="mostrarPagina('perfil')">Perfil</button>
-
-  </div>
+    <div class="card">
+      <h3>Transações</h3>
+      <div id="listaAdminTransacoes">A carregar...</div>
+    </div>
+  </section>
 
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- MENU -->
+<div id="menu" class="menu" style="display:none">
+  <button data-page="inicio" onclick="mostrarPagina('inicio')">Início</button>
+  <button data-page="grupos" onclick="mostrarPagina('grupos')">Grupos</button>
+  <button data-page="historico" onclick="mostrarPagina('historico')">Histórico</button>
+  <button data-page="perfil" onclick="mostrarPagina('perfil')">Perfil</button>
+</div>
 
 <script>
-
 /* =========================================================
-   KIXAPP
-   BASE DO JAVASCRIPT
-   ========================================================= */
-
-
-/* =========================================================
-   1. CONFIGURAÇÃO SUPABASE
-   ========================================================= */
-
-/*
-  IMPORTANTE:
-  Mantém aqui os mesmos valores que já usavas no teu projeto.
-
-  Não vou inventar a URL nem a ANON KEY.
-*/
-
-const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";  
-
-const client = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-
-
-/* =========================================================
-   2. ESTADO GLOBAL DA APLICAÇÃO
+   KIXAPP — ESTADO ÚNICO
    ========================================================= */
 
 const state = {
-
-  /* utilizador autenticado */
   user: null,
-
-  /* perfil da tabela profiles */
   profile: null,
-
-  /* plano atual */
-  planoAtual: "Basic",
-
-  /* quantidade de grupos usados */
+  isAdmin: false,
+  adminRole: null,
+  plano: "Basic",
   gruposUsados: 0,
-
-  /* grupos do utilizador */
-  meusGrupos: [],
-
-  /* grupos públicos disponíveis */
-  gruposDisponiveis: [],
-
-  /* grupo atualmente aberto */
-  grupoAtual: null,
-
-  /* página atual */
-  paginaAtual: "home"
-
+  grupoAtual: null
 };
 
-
-/* =========================================================
-   3. LIMITES DOS PLANOS
-   ========================================================= */
-
-const LIMITES_PLANOS = {
-
+const limitesPlano = {
   Basic: 3,
-
   Pro: 10,
-
-  Premium: 999
-
+  Premium: Infinity
 };
 
-
 /* =========================================================
-   4. FUNÇÕES AUXILIARES
+   HELPERS
    ========================================================= */
 
+const $ = id => document.getElementById(id);
 
-/*
-  Obtém um elemento pelo ID sem causar erro
-  caso ele ainda não exista no HTML.
-*/
-
-function el(id) {
-
-  return document.getElementById(id);
-
-}
-
-
-/*
-  Converte um valor para número.
-*/
-
-function numero(valor) {
-
-  const n = Number(valor);
-
+function numero(v){
+  const n = Number(v);
   return Number.isFinite(n) ? n : 0;
-
 }
 
-
-/*
-  Formata valores monetários em Kz.
-*/
-
-function formatarKz(valor) {
-
-  return numero(valor).toLocaleString("pt-AO") + " Kz";
-
+function formatarKz(v){
+  return numero(v).toLocaleString("pt-AO") + " Kz";
 }
 
+function esc(v){
+  return String(v ?? "")
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
+}
 
-/*
-  Mostra uma notificação simples.
-*/
+function mostrarNotificacao(titulo,mensagem){
+  let c=document.querySelector(".kix-toast-container");
+  if(!c){
+    c=document.createElement("div");
+    c.className="kix-toast-container";
+    document.body.appendChild(c);
+  }
+  const t=document.createElement("div");
+  t.className="kix-toast";
+  t.innerHTML=`
+    <div class="kix-toast-icon">✓</div>
+    <div class="kix-toast-content">
+      <div class="kix-toast-title">${esc(titulo)}</div>
+      <div class="kix-toast-message">${esc(mensagem)}</div>
+    </div>
+    <button class="kix-toast-close">×</button>`;
+  t.querySelector("button").onclick=()=>t.remove();
+  c.appendChild(t);
+  requestAnimationFrame(()=>t.classList.add("show"));
+  setTimeout(()=>{t.classList.remove("show");setTimeout(()=>t.remove(),250)},3500);
+}
 
-function mostrarNotificacao(titulo, mensagem) {
+/* =========================================================
+   UI / NAVEGAÇÃO
+   ========================================================= */
 
-  /*
-    Se o sistema de notificações já existir no HTML,
-    usamos esse sistema.
-  */
+function mostrarPagina(pagina){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  const alvo=$("pagina"+pagina.charAt(0).toUpperCase()+pagina.slice(1));
+  if(alvo) alvo.classList.add("active");
 
-  const notificacao =
-    el("notificacao");
+  document.querySelectorAll(".menu button").forEach(b=>{
+    b.classList.toggle("active",b.dataset.page===pagina);
+  });
 
-  if (notificacao) {
+  if(pagina==="grupos") carregarMeusGrupos();
+  if(pagina==="historico") carregarHistorico();
+  if(pagina==="perfil") updateUI();
+  if(pagina==="admin") carregarDadosAdmin();
+}
 
-    notificacao.innerHTML = `
-      <strong>${titulo}</strong>
-      <br>
-      <span>${mensagem}</span>
-    `;
+function updateUI(){
+  if(!state.profile || !state.user) return;
 
-    notificacao.style.display = "block";
+  const nome=state.profile.nome || state.user.email || "Utilizador";
+  $("userEmail").innerText="👤 "+nome;
+  $("perfilNome").innerText=state.profile.nome || "Sem nome";
+  $("inputNome").value=state.profile.nome || "";
+  $("userSaldo").innerText=formatarKz(state.profile.saldo);
+  $("planoAtual").innerText=state.plano;
+  $("perfilPlano").innerText=state.plano;
+  $("gruposUsados").innerText=state.gruposUsados;
+  $("gruposLimite").innerText=limitesPlano[state.plano]===Infinity?"∞":limitesPlano[state.plano];
+  $("perfilTelefone").innerText=state.profile.telefone || "Não informado";
+  $("planoStatus").innerText="Status: "+(state.profile.status || "Ativo");
+}
 
-    setTimeout(() => {
+function atualizarEstado(){
+  state.plano=state.profile?.plano || "Basic";
+  state.gruposUsados=numero(state.profile?.grupos_usados);
+  updateUI();
+}
 
-      notificacao.style.display = "none";
+/* =========================================================
+   AUTENTICAÇÃO
+   ========================================================= */
 
-    }, 3500);
+async function login(){
+  const email=$("email").value.trim();
+  const password=$("password").value;
 
+  if(!email || !password){
+    $("msg").innerText="Preencha email e senha.";
     return;
   }
 
+  $("msg").innerText="A entrar...";
 
-  /*
-    Fallback caso o elemento ainda não exista.
-  */
+  const {data,error}=await client.auth.signInWithPassword({email,password});
 
-  console.log(titulo + ":", mensagem);
-
-}
-
-
-/* =========================================================
-   5. OBTÉM O PLANO DO UTILIZADOR
-   ========================================================= */
-
-function obterLimitePlano() {
-
-  const plano =
-    state.planoAtual || "Basic";
-
-  return LIMITES_PLANOS[plano] || LIMITES_PLANOS.Basic;
-
-}
-
-
-/* =========================================================
-   6. VERIFICA SE O UTILIZADOR PODE CRIAR OUTRO GRUPO
-   ========================================================= */
-
-function podeCriarGrupo() {
-
-  const limite =
-    obterLimitePlano();
-
-  return state.gruposUsados < limite;
-
-}
-
-
-/* =========================================================
-   7. ATUALIZA CONTADORES INTERNOS
-   ========================================================= */
-
-function atualizarEstadoPlano() {
-
-  if (!state.profile) return;
-
-  state.planoAtual =
-    state.profile.plano || "Basic";
-
-}
-
-
-/* =========================================================
-   8. LIMPA O ESTADO DO UTILIZADOR
-   ========================================================= */
-
-function limparEstado() {
-
-  state.user = null;
-
-  state.profile = null;
-
-  state.planoAtual = "Basic";
-
-  state.gruposUsados = 0;
-
-  state.meusGrupos = [];
-
-  state.gruposDisponiveis = [];
-
-  state.grupoAtual = null;
-
-}
-
-
-/* =========================================================
-   FIM DA PARTE 1
-   ========================================================= */
-
-  <script>
-
-/* =========================================================
-   KIXAPP
-   PARTE 2 — AUTENTICAÇÃO E SESSÃO
-   ========================================================= */
-
-
-/* =========================================================
-   1. LOGIN
-   ========================================================= */
-
-async function login() {
-
-  const email =
-    el("loginEmail")?.value.trim();
-
-  const password =
-    el("loginPassword")?.value;
-
-
-  if (!email || !password) {
-
-    alert("Preencha o email e a palavra-passe.");
-
+  if(error){
+    $("msg").innerText=error.message;
     return;
   }
 
-
-  const botao =
-    document.querySelector(
-      '#loginBox button[type="submit"], #loginBox button'
-    );
-
-
-  if (botao) {
-
-    botao.disabled = true;
-
-    botao.innerText = "A entrar...";
-
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client.auth.signInWithPassword({
-
-      email: email,
-
-      password: password
-
-    });
-
-
-    if (error) {
-
-      console.error(
-        "Erro no login:",
-        error
-      );
-
-      alert(
-        "Não foi possível iniciar sessão: " +
-        error.message
-      );
-
-      return;
-    }
-
-
-    if (!data?.user) {
-
-      alert(
-        "Não foi possível obter o utilizador."
-      );
-
-      return;
-    }
-
-
-    /*
-      Guardamos o utilizador no estado.
-    */
-
-    state.user =
-      data.user;
-
-
-    /*
-      A sessão do Supabase fica persistida
-      automaticamente pelo cliente.
-    */
-
-    await carregarPerfil();
-
-
-    mostrarNotificacao(
-      "Sessão iniciada",
-      "Bem-vindo ao KixApp."
-    );
-
-
-    /*
-      Mostra a página principal.
-    */
-
-    mostrarPagina("home");
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado no login:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao iniciar sessão."
-    );
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled = false;
-
-      botao.innerText = "Entrar";
-
-    }
-
-  }
-
+  state.user=data.user;
+  await inicializarUsuario();
 }
 
+async function signup(){
+  const email=$("email").value.trim();
+  const password=$("password").value;
 
-/* =========================================================
-   2. REGISTO
-   ========================================================= */
-
-async function signup() {
-
-  const nome =
-    el("signupNome")?.value.trim();
-
-  const email =
-    el("signupEmail")?.value.trim();
-
-  const password =
-    el("signupPassword")?.value;
-
-  const telefone =
-    el("signupTelefone")?.value.trim();
-
-
-  if (!nome) {
-
-    alert("Digite o seu nome.");
-
+  if(!email || !password){
+    $("msg").innerText="Preencha email e senha.";
     return;
   }
 
-
-  if (!email) {
-
-    alert("Digite o seu email.");
-
+  if(password.length<6){
+    $("msg").innerText="A senha deve ter pelo menos 6 caracteres.";
     return;
   }
 
+  $("msg").innerText="A criar conta...";
 
-  if (!password || password.length < 6) {
+  const {data,error}=await client.auth.signUp({email,password});
 
-    alert(
-      "A palavra-passe deve ter pelo menos 6 caracteres."
-    );
-
+  if(error){
+    $("msg").innerText=error.message;
     return;
   }
 
-
-  const botao =
-    document.querySelector(
-      '#signupBox button[type="submit"], #signupBox button'
-    );
-
-
-  if (botao) {
-
-    botao.disabled = true;
-
-    botao.innerText = "A criar conta...";
-
+  if(data.session){
+    state.user=data.user;
+    await inicializarUsuario();
+  }else{
+    $("msg").innerText="Conta criada. Confirme o email se o Supabase pedir.";
   }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client.auth.signUp({
-
-      email: email,
-
-      password: password,
-
-      options: {
-
-        data: {
-
-          nome: nome,
-
-          telefone: telefone
-
-        }
-
-      }
-
-    });
-
-
-    if (error) {
-
-      console.error(
-        "Erro no registo:",
-        error
-      );
-
-      alert(
-        "Não foi possível criar a conta: " +
-        error.message
-      );
-
-      return;
-    }
-
-
-    /*
-      Dependendo da configuração do Supabase,
-      o email pode precisar de confirmação.
-    */
-
-    if (!data?.user) {
-
-      alert(
-        "Conta criada. Verifique o seu email para continuar."
-      );
-
-      return;
-    }
-
-
-    state.user =
-      data.user;
-
-
-    /*
-      O trigger do Supabase pode criar o perfil
-      automaticamente.
-
-      Tentamos carregar o perfil normalmente.
-    */
-
-    await carregarPerfil();
-
-
-    mostrarNotificacao(
-      "Conta criada",
-      "A sua conta foi criada com sucesso."
-    );
-
-
-    mostrarPagina("home");
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado no registo:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao criar a conta."
-    );
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled = false;
-
-      botao.innerText = "Criar conta";
-
-    }
-
-  }
-
 }
 
-
-/* =========================================================
-   3. LOGOUT
-   ========================================================= */
-
-async function logout() {
-
-  try {
-
-    const {
-      error
-    } = await client.auth.signOut();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao terminar sessão:",
-        error
-      );
-
-      alert(
-        "Não foi possível terminar a sessão."
-      );
-
-      return;
-    }
-
-
-    /*
-      Limpamos completamente o estado local.
-    */
-
-    limparEstado();
-
-
-    /*
-      Se existir uma página de login,
-      mostramos novamente.
-    */
-
-    mostrarPagina("login");
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado no logout:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao terminar a sessão."
-    );
-
-  }
-
+async function logout(){
+  await client.auth.signOut();
+  state.user=null;
+  state.profile=null;
+  state.isAdmin=false;
+  state.adminRole=null;
+  $("loginBox").style.display="block";
+  $("app").style.display="none";
+  $("menu").style.display="none";
 }
 
-
 /* =========================================================
-   4. VERIFICAR SESSÃO
+   PERFIL / SESSÃO
    ========================================================= */
 
-async function verificarSessao() {
+async function carregarPerfil(){
+  if(!state.user) return false;
 
-  try {
-
-    /*
-      O Supabase recupera a sessão persistida.
-    */
-
-    const {
-      data,
-      error
-    } = await client.auth.getSession();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao verificar sessão:",
-        error
-      );
-
-      limparEstado();
-
-      mostrarPagina("login");
-
-      return;
-    }
-
-
-    const session =
-      data?.session;
-
-
-    /*
-      Não existe sessão.
-    */
-
-    if (!session?.user) {
-
-      limparEstado();
-
-      mostrarPagina("login");
-
-      return;
-    }
-
-
-    /*
-      Existe sessão.
-    */
-
-    state.user =
-      session.user;
-
-
-    /*
-      Carregamos o perfil antes de atualizar
-      a interface.
-    */
-
-    await carregarPerfil();
-
-
-    /*
-      Depois do perfil carregado,
-      mostramos a página inicial.
-    */
-
-    mostrarPagina("home");
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao verificar sessão:",
-      erro
-    );
-
-    limparEstado();
-
-    mostrarPagina("login");
-
-  }
-
-}
-
-
-/* =========================================================
-   5. OUVIR ALTERAÇÕES DA SESSÃO
-   ========================================================= */
-
-client.auth.onAuthStateChange(
-  async (event, session) => {
-
-    console.log(
-      "Alteração de autenticação:",
-      event
-    );
-
-
-    /*
-      Logout.
-    */
-
-    if (event === "SIGNED_OUT") {
-
-      limparEstado();
-
-      mostrarPagina("login");
-
-      return;
-    }
-
-
-    /*
-      Login ou recuperação de sessão.
-    */
-
-    if (
-      event === "SIGNED_IN" ||
-      event === "INITIAL_SESSION"
-    ) {
-
-      if (!session?.user) {
-
-        limparEstado();
-
-        mostrarPagina("login");
-
-        return;
-      }
-
-
-      state.user =
-        session.user;
-
-
-      /*
-        Não carregamos várias vezes o perfil
-        se ele já estiver disponível.
-      */
-
-      if (!state.profile) {
-
-        await carregarPerfil();
-
-      }
-
-    }
-
-  }
-);
-
-
-/* =========================================================
-   6. EXPORTAR FUNÇÕES PARA O HTML
-   ========================================================= */
-
-window.login =
-  login;
-
-window.signup =
-  signup;
-
-window.logout =
-  logout;
-
-window.verificarSessao =
-  verificarSessao;
-
-
-/* =========================================================
-   FIM DA PARTE 2
-   ========================================================= */
-
-/* =========================================================
-   KIXAPP
-   PARTE 3 — PERFIL, SALDO E PLANO
-   ========================================================= */
-
-
-/* =========================================================
-   1. CARREGAR PERFIL
-   ========================================================= */
-
-async function carregarPerfil() {
-
-  if (!state.user) {
-    return;
-  }
-
-
-  const {
-    data: perfil,
-    error
-  } = await client
+  const {data,error}=await client
     .from("profiles")
     .select("*")
-    .eq("id", state.user.id)
+    .eq("id",state.user.id)
     .maybeSingle();
 
-
-  if (error) {
-
-    console.error(
-      "Erro ao carregar perfil:",
-      error
-    );
-
-    return;
+  if(error){
+    console.error(error);
+    return false;
   }
 
-
-  /*
-    Caso o perfil ainda não exista,
-    criamos um perfil básico.
-
-    Isto evita que a interface fique
-    sem dados depois do primeiro registo.
-  */
-
-  if (!perfil) {
-
-    const novoPerfil = {
-
-      id: state.user.id,
-
-      nome:
-        state.user.user_metadata?.nome ||
-        "",
-
-      email:
-        state.user.email || "",
-
-      telefone:
-        state.user.user_metadata?.telefone ||
-        "",
-
-      saldo: 0,
-
-      plano: "Basic"
-
-    };
-
-
-    const {
-      data: perfilCriado,
-      error: erroCriacao
-    } = await client
+  if(!data){
+    const {data:novo,error:erroNovo}=await client
       .from("profiles")
-      .insert(novoPerfil)
+      .insert({
+        id:state.user.id,
+        email:state.user.email,
+        saldo:0,
+        plano:"Basic",
+        grupos_usados:0
+      })
       .select("*")
       .single();
 
-
-    if (erroCriacao) {
-
-      console.error(
-        "Erro ao criar perfil:",
-        erroCriacao
-      );
-
-      /*
-        Mesmo que a criação do perfil falhe,
-        mantemos os dados básicos no estado.
-      */
-
-      state.profile =
-        novoPerfil;
-
-    } else {
-
-      state.profile =
-        perfilCriado;
-
+    if(erroNovo){
+      console.error(erroNovo);
+      state.profile={id:state.user.id,email:state.user.email,saldo:0,plano:"Basic",grupos_usados:0};
+      atualizarEstado();
+      return false;
     }
 
-  } else {
-
-    state.profile =
-      perfil;
-
+    state.profile=novo;
+    atualizarEstado();
+    return true;
   }
 
-
-  /*
-    Atualiza o plano interno.
-  */
-
-  atualizarEstadoPlano();
-
-
-  /*
-    Conta os grupos utilizados.
-  */
-
-  await calcularGruposUsados();
-
-
-  /*
-    Atualiza toda a interface.
-  */
-
-  atualizarUI();
-
+  state.profile=data;
+  atualizarEstado();
+  return true;
 }
 
+async function verificarSessao(){
+  try{
+    const {data,error}=await client.auth.getSession();
+    if(error) throw error;
+
+    if(!data.session){
+      state.user=null;
+      $("loginBox").style.display="block";
+      $("app").style.display="none";
+      $("menu").style.display="none";
+      return;
+    }
+
+    state.user=data.session.user;
+    await inicializarUsuario();
+  }catch(e){
+    console.error("Erro ao recuperar sessão:",e);
+  }
+}
+
+async function inicializarUsuario(){
+  if(!state.user) return;
+
+  await carregarPerfil();
+  await verificarAdministrador();
+
+  $("loginBox").style.display="none";
+  $("app").style.display="block";
+  $("menu").style.display="flex";
+
+  updateUI();
+  await carregarDadosApp();
+  atualizarAcessoAdmin();
+  mostrarPagina("inicio");
+}
 
 /* =========================================================
-   2. CALCULAR GRUPOS UTILIZADOS
+   DEPÓSITO
    ========================================================= */
 
-async function calcularGruposUsados() {
+async function depositarValor(){
+  if(!state.user || !state.profile) return alert("Sessão não encontrada.");
 
-  if (!state.user) {
+  const input=$("valorDeposito");
+  const valor=numero(input.value);
 
-    state.gruposUsados = 0;
+  if(valor<=0) return alert("Valor inválido.");
 
-    return;
+  const saldoAtual=numero(state.profile.saldo);
+  const novoSaldo=saldoAtual+valor;
 
+  input.disabled=true;
+
+  try{
+    const {data,error}=await client
+      .from("profiles")
+      .update({saldo:novoSaldo})
+      .eq("id",state.user.id)
+      .select("*")
+      .single();
+
+    if(error) throw error;
+
+    const {error:erroTx}=await client
+      .from("transactions")
+      .insert({
+        user_id:state.user.id,
+        tipo:"deposito",
+        valor:valor,
+        descricao:"Depósito"
+      });
+
+    if(erroTx) console.warn("Saldo atualizado, mas histórico falhou:",erroTx);
+
+    state.profile=data;
+    input.value="";
+    updateUI();
+    await carregarHistorico();
+
+    mostrarNotificacao("Depósito feito",`Foram adicionados ${formatarKz(valor)}.`);
+  }catch(e){
+    console.error(e);
+    alert(e.message || "Não foi possível adicionar o saldo.");
+  }finally{
+    input.disabled=false;
+  }
+}
+
+/* =========================================================
+   PERFIL
+   ========================================================= */
+
+async function salvarNome(){
+  if(!state.user) return;
+
+  const nome=$("inputNome").value.trim();
+  if(!nome) return alert("Digite o seu nome.");
+
+  const {data,error}=await client
+    .from("profiles")
+    .update({nome})
+    .eq("id",state.user.id)
+    .select("*")
+    .single();
+
+  if(error){
+    console.error(error);
+    return alert(error.message);
   }
 
+  state.profile=data;
+  updateUI();
+  mostrarNotificacao("Perfil atualizado","O seu nome foi guardado.");
+}
 
-  const {
-    count,
-    error
-  } = await client
+/* =========================================================
+   PLANOS
+   ========================================================= */
+
+function atualizarPlanoGrupo(){
+  const quantidade=numero($("novoGrupoMembros").value);
+  const limite=limitesPlano[state.plano] ?? 0;
+
+  if(quantidade<=5){
+    $("planoGrupoInfo").innerText="Grupo gratuito — até 5 participantes.";
+  }else if(state.plano==="Basic"){
+    $("planoGrupoInfo").innerText="Este grupo exige Pro. O seu plano Basic não permite 6–10 participantes.";
+  }else{
+    $("planoGrupoInfo").innerText="Grupo Pro — de 6 a 10 participantes.";
+  }
+}
+
+async function calcularGruposUsados(){
+  if(!state.user) return;
+
+  const {count,error}=await client
     .from("group_members")
-    .select("group_id", {
-      count: "exact",
-      head: true
-    })
-    .eq("user_id", state.user.id);
+    .select("*",{count:"exact",head:true})
+    .eq("user_id",state.user.id);
 
-
-  if (error) {
-
-    console.error(
-      "Erro ao contar grupos:",
-      error
-    );
-
-    state.gruposUsados = 0;
-
+  if(error){
+    console.error(error);
     return;
   }
 
+  state.gruposUsados=count||0;
 
-  state.gruposUsados =
-    count || 0;
+  await client
+    .from("profiles")
+    .update({grupos_usados:state.gruposUsados})
+    .eq("id",state.user.id);
 
+  updateUI();
 }
 
-
 /* =========================================================
-   3. ATUALIZAR INTERFACE
+   CRIAR / PESQUISAR GRUPOS
    ========================================================= */
 
-function atualizarUI() {
-
-  if (!state.user) {
-    return;
-  }
-
-
-  const perfil =
-    state.profile || {};
-
-
-  const nome =
-    perfil.nome ||
-    state.user.email ||
-    "Utilizador";
-
-
-  const saldo =
-    numero(perfil.saldo);
-
-
-  const plano =
-    perfil.plano ||
-    "Basic";
-
-
-  state.planoAtual =
-    plano;
-
-
-  /* -------------------------------------------------------
-     Nome / email
-     ------------------------------------------------------- */
-
-  if (el("userEmail")) {
-
-    el("userEmail").innerText =
-      "👤 " + nome;
-
-  }
-
-
-  if (el("perfilNome")) {
-
-    el("perfilNome").innerText =
-      nome || "Sem nome";
-
-  }
-
-
-  if (el("perfilEmail")) {
-
-    el("perfilEmail").innerText =
-      state.user.email || "";
-
-  }
-
-
-  if (el("perfilTelefone")) {
-
-    el("perfilTelefone").innerText =
-      perfil.telefone || "Sem telefone";
-
-  }
-
-
-  /* -------------------------------------------------------
-     Saldo
-     ------------------------------------------------------- */
-
-  if (el("userSaldo")) {
-
-    el("userSaldo").innerText =
-      formatarKz(saldo);
-
-  }
-
-
-  if (el("saldoAtual")) {
-
-    el("saldoAtual").innerText =
-      formatarKz(saldo);
-
-  }
-
-
-  /* -------------------------------------------------------
-     Plano
-     ------------------------------------------------------- */
-
-  if (el("planoAtual")) {
-
-    el("planoAtual").innerText =
-      plano;
-
-  }
-
-
-  if (el("userPlano")) {
-
-    el("userPlano").innerText =
-      plano;
-
-  }
-
-
-  /* -------------------------------------------------------
-     Grupos
-     ------------------------------------------------------- */
-
-  if (el("gruposUsados")) {
-
-    el("gruposUsados").innerText =
-      state.gruposUsados;
-
-  }
-
-
-  if (el("limiteGrupos")) {
-
-    const limite =
-      obterLimitePlano();
-
-    el("limiteGrupos").innerText =
-      limite >= 999
-        ? "Ilimitado"
-        : limite;
-
-  }
-
-
-  /* -------------------------------------------------------
-     Status do plano
-     ------------------------------------------------------- */
-
-  if (el("statusPlano")) {
-
-    el("statusPlano").innerText =
-      "Ativo";
-
-  }
-
-
-  /* -------------------------------------------------------
-     Elementos de plano já existentes
-     ------------------------------------------------------- */
-
-  const planoElementos =
-    document.querySelectorAll(
-      "[data-plano-atual]"
-    );
-
-
-  planoElementos.forEach(elemento => {
-
-    elemento.innerText =
-      plano;
-
-  });
-
-
-  /*
-    Atualiza também a área de criação de grupos.
-  */
-
+function abrirCriarGrupo(){
+  $("criarGrupoBox").classList.remove("hidden");
+  $("pesquisarGruposBox").classList.add("hidden");
+  $("criarGrupoBox").scrollIntoView({behavior:"smooth"});
   atualizarPlanoGrupo();
-
 }
 
-
-/* =========================================================
-   4. DEPOSITAR / ADICIONAR SALDO
-   ========================================================= */
-
-async function depositarValor() {
-
-  if (!state.user || !state.profile) {
-
-    alert(
-      "Sessão não encontrada. Entre novamente."
-    );
-
-    return;
-  }
-
-
-  const input =
-    el("valorDeposito");
-
-
-  const valor =
-    numero(input?.value);
-
-
-  if (!valor || valor <= 0) {
-
-    alert(
-      "Digite um valor válido."
-    );
-
-    return;
-  }
-
-
-  const botao =
-    document.querySelector(
-      '#depositoBox button'
-    );
-
-
-  if (botao) {
-
-    botao.disabled = true;
-
-    botao.innerText =
-      "A processar...";
-
-  }
-
-
-  try {
-
-    const saldoAtual =
-      numero(state.profile.saldo);
-
-
-    const novoSaldo =
-      saldoAtual + valor;
-
-
-    /*
-      Atualizamos o perfil.
-
-      A atualização só é considerada concluída
-      depois de o Supabase confirmar.
-    */
-
-    const {
-      data,
-      error
-    } = await client
-      .from("profiles")
-      .update({
-
-        saldo: novoSaldo
-
-      })
-      .eq("id", state.user.id)
-      .select("*")
-      .single();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao atualizar saldo:",
-        error
-      );
-
-      alert(
-        "Não foi possível atualizar o saldo: " +
-        error.message
-      );
-
-      return;
-    }
-
-
-    /*
-      Atualiza o estado com o valor realmente
-      devolvido pelo Supabase.
-    */
-
-    state.profile =
-      data;
-
-
-    /*
-      Atualiza a interface imediatamente.
-    */
-
-    atualizarUI();
-
-
-    /*
-      Limpa o campo.
-    */
-
-    if (input) {
-
-      input.value = "";
-
-    }
-
-
-    mostrarNotificacao(
-      "Saldo atualizado",
-      "Foram adicionados " +
-      formatarKz(valor) +
-      " ao seu saldo."
-    );
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao depositar:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao atualizar o saldo."
-    );
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled = false;
-
-      botao.innerText =
-        "Adicionar saldo";
-
-    }
-
-  }
-
+function fecharCriarGrupo(){
+  $("criarGrupoBox").classList.add("hidden");
 }
 
-
-/* =========================================================
-   5. SALVAR NOME
-   ========================================================= */
-
-async function salvarNome() {
-
-  if (!state.user) {
-
-    alert(
-      "Sessão não encontrada."
-    );
-
-    return;
-  }
-
-
-  const input =
-    el("novoNome");
-
-
-  const nome =
-    input?.value.trim();
-
-
-  if (!nome) {
-
-    alert(
-      "Digite o seu nome."
-    );
-
-    return;
-  }
-
-
-  const botao =
-    document.querySelector(
-      '#editarPerfilBox button'
-    );
-
-
-  if (botao) {
-
-    botao.disabled = true;
-
-    botao.innerText =
-      "A guardar...";
-
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("profiles")
-      .update({
-
-        nome: nome
-
-      })
-      .eq("id", state.user.id)
-      .select("*")
-      .single();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao guardar nome:",
-        error
-      );
-
-      alert(
-        "Não foi possível guardar o nome: " +
-        error.message
-      );
-
-      return;
-    }
-
-
-    state.profile =
-      data;
-
-
-    atualizarUI();
-
-
-    if (input) {
-
-      input.value = "";
-
-    }
-
-
-    mostrarNotificacao(
-      "Perfil atualizado",
-      "O seu nome foi atualizado com sucesso."
-    );
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao atualizar o perfil."
-    );
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled = false;
-
-      botao.innerText =
-        "Guardar nome";
-
-    }
-
-  }
-
+function abrirPesquisarGrupos(){
+  $("criarGrupoBox").classList.add("hidden");
+  $("pesquisarGruposBox").classList.remove("hidden");
+  carregarGruposDisponiveis();
 }
 
+async function criarGrupo(){
+  if(!state.user) return alert("Sessão não encontrada.");
 
-/* =========================================================
-   6. EXPORTAR FUNÇÕES
-   ========================================================= */
+  const nome=$("novoGrupoNome").value.trim();
+  const valor=numero($("novoGrupoValor").value);
+  const tipo=$("novoGrupoTipo").value;
+  const membros=numero($("novoGrupoMembros").value);
 
-window.carregarPerfil =
-  carregarPerfil;
+  if(!nome) return alert("Digite o nome do grupo.");
+  if(valor<=0) return alert("Digite um valor válido.");
+  if(membros<2 || membros>10) return alert("O grupo deve ter entre 2 e 10 participantes.");
 
-window.atualizarUI =
-  atualizarUI;
-
-window.calcularGruposUsados =
-  calcularGruposUsados;
-
-window.depositarValor =
-  depositarValor;
-
-window.salvarNome =
-  salvarNome;
-
-
-/* =========================================================
-   FIM DA PARTE 3
-   ========================================================= */
-
-/* =========================================================
-   KIXAPP
-   PARTE 4 — NAVEGAÇÃO E MÓDULOS
-   ========================================================= */
-
-
-/* =========================================================
-   1. MOSTRAR PÁGINA
-   ========================================================= */
-
-function mostrarPagina(pagina) {
-
-  if (!pagina) return;
-
-  state.paginaAtual = pagina;
-
-
-  /*
-    Todas as páginas existentes na aplicação.
-  */
-
-  const paginas =
-    document.querySelectorAll(
-      ".pagina"
-    );
-
-
-  paginas.forEach(elemento => {
-
-    elemento.style.display =
-      "none";
-
-  });
-
-
-  /*
-    Tenta encontrar a página pelo ID.
-  */
-
-  const paginaElemento =
-    el(pagina);
-
-
-  if (paginaElemento) {
-
-    paginaElemento.style.display =
-      "block";
-
+  if(state.plano==="Basic" && membros>5){
+    return alert("O plano Basic permite grupos de até 5 participantes.");
   }
 
-
-  /*
-    Também suporta IDs no formato:
-    paginaHome
-    paginaPerfil
-    paginaGrupos
-    etc.
-  */
-
-  const paginaAlternativa =
-    el("pagina" + capitalizar(pagina));
-
-
-  if (
-    paginaAlternativa &&
-    paginaAlternativa !== paginaElemento
-  ) {
-
-    paginaAlternativa.style.display =
-      "block";
-
+  if(state.plano!=="Premium" && state.gruposUsados>=limitesPlano[state.plano]){
+    return alert("Limite de grupos do seu plano atingido.");
   }
 
-
-  /*
-    Atualização específica ao abrir determinadas áreas.
-  */
-
-  if (
-    pagina === "grupos" ||
-    pagina === "meusGrupos"
-  ) {
-
-    carregarMeusGrupos();
-
-  }
-
-
-  if (
-    pagina === "pesquisarGrupos" ||
-    pagina === "gruposDisponiveis"
-  ) {
-
-    carregarGruposDisponiveis();
-
-  }
-
-
-  if (pagina === "home") {
-
-    atualizarUI();
-
-  }
-
-}
-
-
-/* =========================================================
-   2. CAPITALIZAR
-   ========================================================= */
-
-function capitalizar(texto) {
-
-  if (!texto) return "";
-
-  return texto.charAt(0).toUpperCase() +
-         texto.slice(1);
-
-}
-
-
-/* =========================================================
-   3. FILTRAR
-   ========================================================= */
-
-function filtrar(tipo) {
-
-  /*
-    Guardamos o filtro atual para futuras
-    atualizações da lista.
-  */
-
-  state.filtroGrupo =
-    tipo || "todos";
-
-
-  /*
-    Atualizamos visualmente os botões
-    de filtro.
-  */
-
-  const botoes =
-    document.querySelectorAll(
-      "[data-filtro]"
-    );
-
-
-  botoes.forEach(botao => {
-
-    botao.classList.remove(
-      "ativo"
-    );
-
-
-    if (
-      botao.dataset.filtro ===
-      state.filtroGrupo
-    ) {
-
-      botao.classList.add(
-        "ativo"
-      );
-
-    }
-
-  });
-
-
-  /*
-    Se existir uma lista de grupos,
-    aplicamos o filtro aos cartões.
-  */
-
-  const cards =
-    document.querySelectorAll(
-      ".grupo-card"
-    );
-
-
-  cards.forEach(card => {
-
-    const tipoGrupo =
-      (
-        card.dataset.tipo ||
-        ""
-      ).toLowerCase();
-
-
-    const filtro =
-      String(
-        state.filtroGrupo
-      ).toLowerCase();
-
-
-    if (
-      filtro === "todos" ||
-      !filtro
-    ) {
-
-      card.style.display =
-        "";
-
-      return;
-
-    }
-
-
-    if (
-      tipoGrupo === filtro
-    ) {
-
-      card.style.display =
-        "";
-
-    } else {
-
-      card.style.display =
-        "none";
-
-    }
-
-  });
-
-}
-
-
-/* =========================================================
-   4. ABRIR CRIAÇÃO DE GRUPO
-   ========================================================= */
-
-function abrirCriarGrupo() {
-
-  const box =
-    el("criarGrupoBox");
-
-
-  if (!box) {
-
-    console.warn(
-      "Elemento criarGrupoBox não encontrado."
-    );
-
-    return;
-  }
-
-
-  /*
-    Atualizamos o plano antes de mostrar
-    a área de criação.
-  */
-
-  atualizarPlanoGrupo();
-
-
-  box.style.display =
-    "block";
-
-
-  /*
-    Posiciona o utilizador no formulário.
-  */
-
-  box.scrollIntoView({
-    behavior: "smooth",
-    block: "center"
-  });
-
-}
-
-
-/* =========================================================
-   5. FECHAR CRIAÇÃO DE GRUPO
-   ========================================================= */
-
-function fecharCriarGrupo() {
-
-  const box =
-    el("criarGrupoBox");
-
-
-  if (!box) return;
-
-
-  box.style.display =
-    "none";
-
-}
-
-
-/* =========================================================
-   6. ABRIR PESQUISA DE GRUPOS
-   ========================================================= */
-
-function abrirPesquisarGrupos() {
-
-  const box =
-    el("pesquisarGruposBox");
-
-
-  if (box) {
-
-    box.style.display =
-      "block";
-
-    box.scrollIntoView({
-      behavior: "smooth",
-      block: "center"
+  const botao=document.querySelector('#criarGrupoBox button[onclick="criarGrupo()"]');
+  if(botao){botao.disabled=true;botao.innerText="A criar grupo...";}
+
+  try{
+    const {data,error}=await client.rpc("criar_grupo_kixapp",{
+      p_nome:nome,
+      p_valor:valor,
+      p_tipo:tipo,
+      p_max_membros:membros
     });
 
-  }
-
-
-  /*
-    Carrega imediatamente os grupos públicos.
-  */
-
-  carregarGruposDisponiveis();
-
-}
-
-
-/* =========================================================
-   7. FECHAR PESQUISA DE GRUPOS
-   ========================================================= */
-
-function fecharPesquisarGrupos() {
-
-  const box =
-    el("pesquisarGruposBox");
-
-
-  if (!box) return;
-
-
-  box.style.display =
-    "none";
-
-}
-
-
-/* =========================================================
-   8. ATUALIZAR ÁREA DO PLANO
-   ========================================================= */
-
-function atualizarPlanoGrupo() {
-
-  const plano =
-    state.planoAtual ||
-    state.profile?.plano ||
-    "Basic";
-
-
-  const limite =
-    LIMITES_PLANOS[plano] ||
-    LIMITES_PLANOS.Basic;
-
-
-  /*
-    Mostra o nome do plano.
-  */
-
-  const elementosPlano =
-    document.querySelectorAll(
-      "[data-plano]"
-    );
-
-
-  elementosPlano.forEach(elemento => {
-
-    elemento.innerText =
-      plano;
-
-  });
-
-
-  /*
-    Mostra a quantidade utilizada.
-  */
-
-  const elementosUso =
-    document.querySelectorAll(
-      "[data-grupos-usados]"
-    );
-
-
-  elementosUso.forEach(elemento => {
-
-    elemento.innerText =
-      state.gruposUsados;
-
-  });
-
-
-  /*
-    Mostra o limite.
-  */
-
-  const elementosLimite =
-    document.querySelectorAll(
-      "[data-limite-grupos]"
-    );
-
-
-  elementosLimite.forEach(elemento => {
-
-    elemento.innerText =
-      limite >= 999
-        ? "Ilimitado"
-        : limite;
-
-  });
-
-
-  /*
-    Verifica se o utilizador ainda pode
-    criar grupos.
-  */
-
-  const podeCriar =
-    podeCriarGrupo();
-
-
-  const botaoCriar =
-    document.querySelector(
-      '#criarGrupoBox button[onclick="criarGrupo()"]'
-    );
-
-
-  if (botaoCriar) {
-
-    botaoCriar.disabled =
-      !podeCriar;
-
-
-    if (!podeCriar) {
-
-      botaoCriar.innerText =
-        "Limite do plano atingido";
-
-    } else {
-
-      botaoCriar.innerText =
-        "Criar grupo";
-
-    }
-
-  }
-
-
-  /*
-    Mensagem explicativa.
-  */
-
-  const aviso =
-    el("avisoLimiteGrupo");
-
-
-  if (aviso) {
-
-    if (podeCriar) {
-
-      aviso.style.display =
-        "none";
-
-    } else {
-
-      aviso.style.display =
-        "block";
-
-      aviso.innerText =
-        "Você atingiu o limite de grupos do seu plano.";
-
-    }
-
-  }
-
-}
-
-
-/* =========================================================
-   9. EXPORTAR FUNÇÕES
-   ========================================================= */
-
-window.mostrarPagina =
-  mostrarPagina;
-
-window.filtrar =
-  filtrar;
-
-window.abrirCriarGrupo =
-  abrirCriarGrupo;
-
-window.fecharCriarGrupo =
-  fecharCriarGrupo;
-
-window.abrirPesquisarGrupos =
-  abrirPesquisarGrupos;
-
-window.fecharPesquisarGrupos =
-  fecharPesquisarGrupos;
-
-window.atualizarPlanoGrupo =
-  atualizarPlanoGrupo;
-
-
-/* =========================================================
-   FIM DA PARTE 4
-   ========================================================= */
-
-/* =========================================================
-   KIXAPP
-   PARTE 5 — CRIAÇÃO E CARREGAMENTO DE GRUPOS
-   ========================================================= */
-
-
-/* =========================================================
-   1. CRIAR GRUPO
-   ========================================================= */
-
-async function criarGrupo() {
-
-  if (!state.user) {
-
-    alert(
-      "Sessão não encontrada. Entre novamente."
-    );
-
-    return;
-  }
-
-
-  /*
-    Confirma se o utilizador ainda pode
-    criar um grupo pelo seu plano.
-  */
-
-  if (!podeCriarGrupo()) {
-
-    alert(
-      "Você atingiu o limite de grupos do seu plano."
-    );
-
-    atualizarPlanoGrupo();
-
-    return;
-  }
-
-
-  const nome =
-    el("novoGrupoNome")?.value.trim();
-
-
-  const valor =
-    numero(
-      el("novoGrupoValor")?.value
-    );
-
-
-  const tipo =
-    el("novoGrupoTipo")?.value;
-
-
-  const membros =
-    numero(
-      el("novoGrupoMembros")?.value
-    );
-
-
-  /* -------------------------------------------------------
-     Validações
-     ------------------------------------------------------- */
-
-  if (!nome) {
-
-    alert(
-      "Digite o nome do grupo."
-    );
-
-    return;
-  }
-
-
-  if (!valor || valor <= 0) {
-
-    alert(
-      "Digite um valor válido."
-    );
-
-    return;
-  }
-
-
-  if (membros < 2 || membros > 10) {
-
-    alert(
-      "O grupo deve ter entre 2 e 10 participantes."
-    );
-
-    return;
-  }
-
-
-  /*
-    Localiza o botão de criação.
-  */
-
-  const botao =
-    document.querySelector(
-      '#criarGrupoBox button[onclick="criarGrupo()"]'
-    );
-
-
-  if (botao) {
-
-    botao.disabled = true;
-
-    botao.innerText =
-      "A criar grupo...";
-
-  }
-
-
-  try {
-
-    /*
-      A criação continua sendo feita pela
-      função RPC existente no teu Supabase.
-    */
-
-    const {
-      data,
-      error
-    } = await client.rpc(
-      "criar_grupo_kixapp",
-      {
-        p_nome: nome,
-        p_valor: valor,
-        p_tipo: tipo,
-        p_max_membros: membros
-      }
-    );
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao criar grupo:",
-        error
-      );
-
-      alert(
-        error.message ||
-        "Não foi possível criar o grupo."
-      );
-
-      return;
-    }
-
-
-    console.log(
-      "Grupo criado:",
-      data
-    );
-
-
-    /*
-      Atualiza imediatamente os dados
-      relacionados aos grupos.
-    */
-
-    await carregarMeusGrupos();
-
-    await calcularGruposUsados();
-
-
-    /*
-      Atualiza o plano e o limite.
-    */
-
-    atualizarPlanoGrupo();
-
-
-    /*
-      Atualiza grupos disponíveis.
-    */
-
-    await carregarGruposDisponiveis();
-
-
-    /*
-      Limpa o formulário.
-    */
-
-    const campoNome =
-      el("novoGrupoNome");
-
-    const campoValor =
-      el("novoGrupoValor");
-
-    const campoMembros =
-      el("novoGrupoMembros");
-
-
-    if (campoNome) {
-
-      campoNome.value = "";
-
-    }
-
-
-    if (campoValor) {
-
-      campoValor.value = "";
-
-    }
-
-
-    if (campoMembros) {
-
-      campoMembros.value = "2";
-
-    }
-
-
-    /*
-      Fecha a caixa.
-    */
-
+    if(error) throw error;
+
+    $("novoGrupoNome").value="";
+    $("novoGrupoValor").value="";
+    $("novoGrupoMembros").value="2";
     fecharCriarGrupo();
 
+    await carregarDadosApp();
 
-    mostrarNotificacao(
-      "Kixikila criada",
-      "O grupo foi criado com sucesso e já está disponível em Meus grupos."
-    );
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao criar grupo:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao criar o grupo."
-    );
-
-  } finally {
-
-    if (botao) {
-
-      botao.disabled =
-        !podeCriarGrupo();
-
-      botao.innerText =
-        podeCriarGrupo()
-          ? "Criar grupo"
-          : "Limite do plano atingido";
-
-    }
-
+    mostrarNotificacao("Kixikila criada","O grupo foi criado com sucesso.");
+  }catch(e){
+    console.error(e);
+    alert(e.message || "Não foi possível criar o grupo.");
+  }finally{
+    if(botao){botao.disabled=false;botao.innerText="Criar grupo";}
   }
-
 }
 
-
-/* =========================================================
-   2. CARREGAR GRUPOS DISPONÍVEIS
-   ========================================================= */
-
-async function carregarGruposDisponiveis() {
-
-  const container =
-    el("listaGruposPublicos");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  if (!state.user) {
-
-    container.innerHTML =
-      "Entre na sua conta para procurar grupos.";
-
-    return;
-  }
-
-
-  container.innerHTML =
-    "A procurar grupos disponíveis...";
-
-
-  try {
-
-    const {
-      data: grupos,
-      error
-    } = await client
-      .from("groups")
-      .select(`
-        id,
-        nome,
-        valor,
-        tipo,
-        max_membros,
-        rodada_atual,
-        total_rodadas,
-        status,
-        privado
-      `)
-      .eq("privado", false)
-      .eq("status", "aberto")
-      .order("valor", {
-        ascending: true
-      });
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar grupos públicos:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar os grupos.";
-
-      return;
-    }
-
-
-    if (
-      !grupos ||
-      grupos.length === 0
-    ) {
-
-      container.innerHTML =
-        "Neste momento não existem grupos disponíveis.";
-
-      state.gruposDisponiveis = [];
-
-      return;
-    }
-
-
-    state.gruposDisponiveis = [];
-
-
-    let html = "";
-
-
-    for (const grupo of grupos) {
-
-      /*
-        Conta os participantes atuais
-        de cada grupo.
-      */
-
-      const {
-        count,
-        error: erroContagem
-      } = await client
-        .from("group_members")
-        .select("*", {
-          count: "exact",
-          head: true
-        })
-        .eq(
-          "group_id",
-          grupo.id
-        );
-
-
-      if (erroContagem) {
-
-        console.error(
-          "Erro ao contar participantes:",
-          erroContagem
-        );
-
-        continue;
-      }
-
-
-      const quantidade =
-        count || 0;
-
-
-      const maxMembros =
-        numero(
-          grupo.max_membros
-        );
-
-
-      const vagas =
-        maxMembros - quantidade;
-
-
-      /*
-        Grupo cheio não aparece
-        como disponível.
-      */
-
-      if (vagas <= 0) {
-        continue;
-      }
-
-
-      /*
-        Guardamos os dados no estado.
-      */
-
-      state.gruposDisponiveis.push({
-
-        ...grupo,
-
-        quantidade,
-
-        vagas
-
-      });
-
-
-      html += `
-        <div
-          class="grupo-card"
-          data-tipo="${grupo.tipo || ""}"
-        >
-
-          <b>${grupo.nome}</b>
-
-          <br><br>
-
-          Contribuição:
-          <strong>
-            ${formatarKz(grupo.valor)}
-          </strong>
-
-          <br>
-
-          Periodicidade:
-          ${grupo.tipo || "Não definida"}
-
-          <br>
-
-          Participantes:
-          ${quantidade}/${maxMembros}
-
-          <br>
-
-          Vagas disponíveis:
-          ${vagas}
-
-          <br><br>
-
-          <button
-            onclick="entrarGrupo(${grupo.id})"
-            style="
-              width:100%;
-              padding:10px;
-              border:none;
-              border-radius:8px;
-              background:#1e3a8a;
-              color:white;
-              cursor:pointer;
-            "
-          >
-            Entrar no grupo
-          </button>
-
-        </div>
-      `;
-
-    }
-
-
-    container.innerHTML =
-      html ||
-      "Neste momento não existem grupos com vagas.";
-
-
-    /*
-      Reaplica o filtro atual, se existir.
-    */
-
-    if (state.filtroGrupo) {
-
-      filtrar(
-        state.filtroGrupo
-      );
-
-    }
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao carregar grupos:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar os grupos.";
-
-  }
-
+async function buscarGrupos(){
+  const {data,error}=await client
+    .from("groups")
+    .select("id,nome,valor,tipo,max_membros,rodada_atual,total_rodadas,status,privado")
+    .eq("status","aberto")
+    .eq("privado",false)
+    .order("valor",{ascending:true});
+
+  if(error) throw error;
+  return data||[];
 }
 
-
-/* =========================================================
-   3. CARREGAR MEUS GRUPOS
-   ========================================================= */
-
-async function carregarMeusGrupos() {
-
-  const container =
-    el("listaMeusGrupos");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  if (!state.user) {
-
-    container.innerHTML =
-      "Entre na sua conta para ver os seus grupos.";
-
-    return;
-  }
-
-
-  container.innerHTML =
-    "A carregar os seus grupos...";
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("group_members")
-      .select(`
-        group_id,
-        groups (
-          id,
-          nome,
-          valor,
-          tipo,
-          max_membros,
-          rodada_atual,
-          total_rodadas,
-          status,
-          privado
-        )
-      `)
-      .eq(
-        "user_id",
-        state.user.id
-      );
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar meus grupos:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar os seus grupos.";
-
-      return;
-    }
-
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
-
-      state.meusGrupos = [];
-
-
-      container.innerHTML =
-        "Você ainda não participa de nenhuma Kixikila.";
-
-      await calcularGruposUsados();
-
-      atualizarPlanoGrupo();
-
-      return;
-    }
-
-
-    state.meusGrupos = [];
-
-
-    let html = "";
-
-
-    for (const item of data) {
-
-      const grupo =
-        item.groups;
-
-
-      if (!grupo) {
-        continue;
-      }
-
-
-      /*
-        Guardamos o grupo no estado.
-      */
-
-      state.meusGrupos.push(
-        grupo
-      );
-
-
-      const rodadaAtual =
-        numero(
-          grupo.rodada_atual
-        ) || 1;
-
-
-      const totalRodadas =
-        numero(
-          grupo.total_rodadas
-        ) ||
-        numero(
-          grupo.max_membros
-        );
-
-
-      html += `
-        <div
-          class="grupo-card"
-          data-tipo="${grupo.tipo || ""}"
-        >
-
-          <b>${grupo.nome}</b>
-
-          <br><br>
-
-          ${formatarKz(grupo.valor)}
-          /
-          ${grupo.tipo || ""}
-
-          <br>
-
-          Rodada:
-          ${rodadaAtual}
-          /
-          ${totalRodadas}
-
-          <br>
-
-          Estado:
-          ${grupo.status || "desconhecido"}
-
-          <br><br>
-
-          <button
-            onclick="abrirGrupo(${grupo.id})"
-            style="
-              width:100%;
-              padding:10px;
-              border:none;
-              border-radius:8px;
-              background:#1e3a8a;
-              color:white;
-              cursor:pointer;
-            "
-          >
-            Abrir grupo
-          </button>
-
-        </div>
-      `;
-
-    }
-
-
-    container.innerHTML =
-      html ||
-      "Você ainda não participa de nenhuma Kixikila.";
-
-
-    /*
-      Atualiza o contador de grupos.
-    */
-
-    state.gruposUsados =
-      state.meusGrupos.length;
-
-
-    atualizarPlanoGrupo();
-
-
-    /*
-      Reaplica filtro.
-    */
-
-    if (state.filtroGrupo) {
-
-      filtrar(
-        state.filtroGrupo
-      );
-
-    }
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao carregar meus grupos:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar os seus grupos.";
-
-  }
-
+async function contarMembros(groupId){
+  const {count,error}=await client
+    .from("group_members")
+    .select("*",{count:"exact",head:true})
+    .eq("group_id",groupId);
+
+  if(error) return 0;
+  return count||0;
 }
 
+async function carregarGruposDisponiveis(){
+  const container=$("listaGruposPublicos");
+  if(!container) return;
+
+  container.innerHTML="A procurar grupos disponíveis...";
+
+  try{
+    const grupos=await buscarGrupos();
+    const cards=[];
+
+    for(const g of grupos){
+      const qtd=await contarMembros(g.id);
+      const vagas=numero(g.max_membros)-qtd;
+      if(vagas<=0) continue;
+
+      cards.push(`
+        <div class="grupo-card" data-tipo="${esc(g.tipo)}">
+          <strong>${esc(g.nome)}</strong>
+          <p class="muted">${formatarKz(g.valor)} · ${esc(g.tipo)}</p>
+          <p>Participantes: <b>${qtd}/${numero(g.max_membros)}</b></p>
+          <p>Vagas disponíveis: <b>${vagas}</b></p>
+          <button class="btn" onclick="entrarGrupo(${Number(g.id)})">Entrar no grupo</button>
+        </div>`);
+    }
+
+    container.innerHTML=cards.join("")||'<div class="empty">Neste momento não existem grupos com vagas.</div>';
+  }catch(e){
+    console.error(e);
+    container.innerHTML="Não foi possível carregar os grupos.";
+  }
+}
+
+function filtrarPublicos(tipo,botao){
+  document.querySelectorAll("#tabsPublicos button").forEach(b=>b.classList.remove("active"));
+  if(botao) botao.classList.add("active");
+
+  document.querySelectorAll("#listaGruposPublicos .grupo-card").forEach(card=>{
+    const ok=tipo==="todos" || card.dataset.tipo===tipo;
+    card.style.display=ok?"block":"none";
+  });
+}
 
 /* =========================================================
-   4. EXPORTAR FUNÇÕES
+   ENTRAR / SAIR
    ========================================================= */
 
-window.criarGrupo =
-  criarGrupo;
+async function entrarGrupo(groupId){
+  if(!state.user) return alert("Sessão não encontrada.");
 
-window.carregarGruposDisponiveis =
-  carregarGruposDisponiveis;
-
-window.carregarMeusGrupos =
-  carregarMeusGrupos;
-
-
-/* =========================================================
-   FIM DA PARTE 5
-   ========================================================= */
-
-  /* =========================================================
-   KIXAPP
-   PARTE 6 — ENTRAR E SAIR DE GRUPOS
-   ========================================================= */
-
-
-/* =========================================================
-   1. ENTRAR NO GRUPO
-   ========================================================= */
-
-async function entrarGrupo(groupId) {
-
-  if (!state.user) {
-
-    alert(
-      "Sessão não encontrada. Entre novamente."
-    );
-
-    return;
+  if(state.plano!=="Premium" && state.gruposUsados>=limitesPlano[state.plano]){
+    return alert("Limite do plano atingido.");
   }
 
-
-  if (!groupId) {
-
-    alert(
-      "Grupo inválido."
-    );
-
-    return;
-  }
-
-
-  try {
-
-    /*
-      Procuramos o grupo.
-    */
-
-    const {
-      data: grupo,
-      error: erroGrupo
-    } = await client
-      .from("groups")
-      .select("*")
-      .eq("id", groupId)
-      .single();
-
-
-    if (erroGrupo) {
-
-      console.error(
-        "Erro ao procurar grupo:",
-        erroGrupo
-      );
-
-      alert(
-        "Não foi possível encontrar o grupo."
-      );
-
-      return;
-    }
-
-
-    if (!grupo) {
-
-      alert(
-        "Grupo não encontrado."
-      );
-
-      return;
-    }
-
-
-    /*
-      Verifica se o grupo ainda está aberto.
-    */
-
-    if (grupo.status !== "aberto") {
-
-      alert(
-        "Este grupo não está disponível para entrada."
-      );
-
-      await carregarGruposDisponiveis();
-
-      return;
-    }
-
-
-    /*
-      Verifica o saldo atual.
-    */
-
-    const saldo =
-      numero(
-        state.profile?.saldo
-      );
-
-
-    const valorGrupo =
-      numero(
-        grupo.valor
-      );
-
-
-    if (saldo < valorGrupo) {
-
-      alert(
-        "Saldo insuficiente. " +
-        "Você precisa de " +
-        formatarKz(valorGrupo) +
-        " para entrar neste grupo."
-      );
-
-      return;
-    }
-
-
-    /*
-      Verifica se o utilizador já pertence
-      ao grupo.
-    */
-
-    const {
-      data: membroExistente,
-      error: erroMembro
-    } = await client
+  try{
+    const {data:existente,error:erroBusca}=await client
       .from("group_members")
       .select("group_id")
-      .eq(
-        "group_id",
-        groupId
-      )
-      .eq(
-        "user_id",
-        state.user.id
-      )
+      .eq("group_id",groupId)
+      .eq("user_id",state.user.id)
       .maybeSingle();
 
+    if(erroBusca) throw erroBusca;
+    if(existente) return alert("Já fazes parte deste grupo.");
 
-    if (erroMembro) {
+    const qtd=await contarMembros(groupId);
+    const {data:grupo,error:erroGrupo}=await client
+      .from("groups")
+      .select("id,nome,max_membros,status,privado")
+      .eq("id",groupId)
+      .maybeSingle();
 
-      console.error(
-        "Erro ao verificar membro:",
-        erroMembro
-      );
+    if(erroGrupo) throw erroGrupo;
+    if(!grupo || grupo.status!=="aberto" || grupo.privado) return alert("Este grupo já não está disponível.");
 
-      alert(
-        "Não foi possível verificar a sua participação."
-      );
+    if(qtd>=numero(grupo.max_membros)) return alert("O grupo está cheio.");
 
-      return;
-    }
-
-
-    if (membroExistente) {
-
-      alert(
-        "Você já participa deste grupo."
-      );
-
-      return;
-    }
-
-
-    /*
-      Conta os membros atuais.
-    */
-
-    const {
-      count,
-      error: erroContagem
-    } = await client
+    const {error}=await client
       .from("group_members")
-      .select("*", {
-        count: "exact",
-        head: true
-      })
-      .eq(
-        "group_id",
-        groupId
-      );
+      .insert({group_id:groupId,user_id:state.user.id});
 
+    if(error) throw error;
 
-    if (erroContagem) {
-
-      console.error(
-        "Erro ao contar membros:",
-        erroContagem
-      );
-
-      alert(
-        "Não foi possível verificar as vagas."
-      );
-
-      return;
-    }
-
-
-    const quantidade =
-      count || 0;
-
-
-    const maxMembros =
-      numero(
-        grupo.max_membros
-      );
-
-
-    if (
-      quantidade >= maxMembros
-    ) {
-
-      alert(
-        "Este grupo já está cheio."
-      );
-
-      await carregarGruposDisponiveis();
-
-      return;
-    }
-
-
-    /*
-      Confirmação antes de entrar.
-    */
-
-    const confirmar =
-      confirm(
-        "Entrar nesta Kixikila?\n\n" +
-        "Grupo: " +
-        grupo.nome +
-        "\n" +
-        "Contribuição: " +
-        formatarKz(valorGrupo)
-      );
-
-
-    if (!confirmar) {
-
-      return;
-    }
-
-
-    /*
-      Insere o utilizador no grupo.
-    */
-
-    const {
-      error: erroEntrada
-    } = await client
-      .from("group_members")
-      .insert({
-
-        group_id: groupId,
-
-        user_id: state.user.id
-
-      });
-
-
-    if (erroEntrada) {
-
-      console.error(
-        "Erro ao entrar no grupo:",
-        erroEntrada
-      );
-
-      alert(
-        erroEntrada.message ||
-        "Não foi possível entrar no grupo."
-      );
-
-      return;
-    }
-
-
-    /*
-      Desconta o valor da contribuição
-      do saldo do utilizador.
-    */
-
-    const novoSaldo =
-      saldo - valorGrupo;
-
-
-    const {
-      data: perfilAtualizado,
-      error: erroSaldo
-    } = await client
-      .from("profiles")
-      .update({
-
-        saldo: novoSaldo
-
-      })
-      .eq(
-        "id",
-        state.user.id
-      )
-      .select("*")
-      .single();
-
-
-    if (erroSaldo) {
-
-      /*
-        A entrada já foi criada.
-        Por isso não escondemos o erro.
-      */
-
-      console.error(
-        "Erro ao atualizar saldo:",
-        erroSaldo
-      );
-
-      alert(
-        "Você entrou no grupo, mas ocorreu um erro ao atualizar o saldo. " +
-        "Verifique o seu saldo e as transações."
-      );
-
-    } else {
-
-      state.profile =
-        perfilAtualizado;
-
-    }
-
-
-    /*
-      Recarrega os dados.
-    */
-
-    await carregarMeusGrupos();
-
-    await carregarGruposDisponiveis();
+    await client.from("transactions").insert({
+      user_id:state.user.id,
+      group_id:groupId,
+      tipo:"entrada_grupo",
+      valor:0,
+      descricao:`Entrada no grupo ${grupo.nome}`
+    });
 
     await calcularGruposUsados();
+    await carregarDadosApp();
 
-    atualizarUI();
-
-
-    mostrarNotificacao(
-      "Entrada confirmada",
-      "Você entrou na Kixikila " +
-      grupo.nome +
-      "."
-    );
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao entrar no grupo:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao entrar no grupo."
-    );
-
+    mostrarNotificacao("Entrada confirmada","Entraste no grupo.");
+  }catch(e){
+    console.error(e);
+    alert(e.message||"Não foi possível entrar no grupo.");
   }
-
 }
 
+async function sairGrupo(groupId){
+  if(!state.user) return;
 
-/* =========================================================
-   2. SAIR DO GRUPO
-   ========================================================= */
+  if(!confirm("Tens certeza que queres sair deste grupo?")) return;
 
-async function sairGrupo(groupId) {
+  try{
+    const {data:grupo}=await client.from("groups").select("nome").eq("id",groupId).maybeSingle();
 
-  if (!state.user) {
-
-    alert(
-      "Sessão não encontrada."
-    );
-
-    return;
-  }
-
-
-  if (!groupId) {
-
-    alert(
-      "Grupo inválido."
-    );
-
-    return;
-  }
-
-
-  try {
-
-    /*
-      Procuramos os dados do grupo.
-    */
-
-    const {
-      data: grupo,
-      error: erroGrupo
-    } = await client
-      .from("groups")
-      .select("*")
-      .eq(
-        "id",
-        groupId
-      )
-      .single();
-
-
-    if (erroGrupo) {
-
-      console.error(
-        "Erro ao procurar grupo:",
-        erroGrupo
-      );
-
-      alert(
-        "Não foi possível encontrar o grupo."
-      );
-
-      return;
-    }
-
-
-    /*
-      Confirmamos que o utilizador realmente
-      pertence ao grupo.
-    */
-
-    const {
-      data: membro,
-      error: erroMembro
-    } = await client
-      .from("group_members")
-      .select("*")
-      .eq(
-        "group_id",
-        groupId
-      )
-      .eq(
-        "user_id",
-        state.user.id
-      )
-      .maybeSingle();
-
-
-    if (erroMembro) {
-
-      console.error(
-        "Erro ao verificar participação:",
-        erroMembro
-      );
-
-      alert(
-        "Não foi possível verificar a sua participação."
-      );
-
-      return;
-    }
-
-
-    if (!membro) {
-
-      alert(
-        "Você não participa deste grupo."
-      );
-
-      return;
-    }
-
-
-    /*
-      Aviso importante antes da saída.
-    */
-
-    const confirmar =
-      confirm(
-        "Tem certeza que deseja sair desta Kixikila?\n\n" +
-        "Grupo: " +
-        grupo.nome +
-        "\n\n" +
-        "O valor já pago não será automaticamente devolvido."
-      );
-
-
-    if (!confirmar) {
-
-      return;
-    }
-
-
-    /*
-      Remove o membro.
-    */
-
-    const {
-      error: erroSaida
-    } = await client
+    const {error}=await client
       .from("group_members")
       .delete()
-      .eq(
-        "group_id",
-        groupId
-      )
-      .eq(
-        "user_id",
-        state.user.id
-      );
+      .eq("group_id",groupId)
+      .eq("user_id",state.user.id);
 
+    if(error) throw error;
 
-    if (erroSaida) {
-
-      console.error(
-        "Erro ao sair do grupo:",
-        erroSaida
-      );
-
-      alert(
-        erroSaida.message ||
-        "Não foi possível sair do grupo."
-      );
-
-      return;
-    }
-
-
-    /*
-      Atualiza os dados da aplicação.
-    */
-
-    await carregarMeusGrupos();
-
-    await carregarGruposDisponiveis();
+    await client.from("transactions").insert({
+      user_id:state.user.id,
+      group_id:groupId,
+      tipo:"saida_grupo",
+      valor:0,
+      descricao:`Saída do grupo ${grupo?.nome||""}`
+    });
 
     await calcularGruposUsados();
+    await carregarMeusGrupos();
 
-    atualizarUI();
-
-
-    mostrarNotificacao(
-      "Grupo abandonado",
-      "Você saiu da Kixikila " +
-      grupo.nome +
-      "."
-    );
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao sair do grupo:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao sair do grupo."
-    );
-
+    $("grupoDetalhe").classList.add("hidden");
+    mostrarNotificacao("Saíste do grupo","A participação foi removida.");
+  }catch(e){
+    console.error(e);
+    alert(e.message||"Não foi possível sair do grupo.");
   }
-
 }
 
-
 /* =========================================================
-   3. EXPORTAR FUNÇÕES
+   MEUS GRUPOS
    ========================================================= */
 
-window.entrarGrupo =
-  entrarGrupo;
+let meusGruposCache=[];
 
-window.sairGrupo =
-  sairGrupo;
+async function carregarMeusGrupos(){
+  const container=$("listaMeusGrupos");
+  if(!container || !state.user) return;
 
+  container.innerHTML="A carregar os seus grupos...";
 
-/* =========================================================
-   FIM DA PARTE 6
-   ========================================================= */
-
-  /* =========================================================
-   KIXAPP
-   PARTE 7 — CABEÇA, PARTICIPANTES E RODADAS
-   ========================================================= */
-
-
-/* =========================================================
-   1. ABRIR GRUPO
-   ========================================================= */
-
-async function abrirGrupo(groupId) {
-
-  if (!state.user) {
-
-    alert(
-      "Sessão não encontrada. Entre novamente."
-    );
-
-    return;
-  }
-
-
-  if (!groupId) {
-
-    alert(
-      "Grupo inválido."
-    );
-
-    return;
-  }
-
-
-  try {
-
-    /*
-      Procuramos o grupo.
-    */
-
-    const {
-      data: grupo,
-      error: erroGrupo
-    } = await client
-      .from("groups")
-      .select(`
-        id,
-        nome,
-        valor,
-        tipo,
-        max_membros,
-        rodada_atual,
-        total_rodadas,
-        status,
-        privado
-      `)
-      .eq(
-        "id",
-        groupId
-      )
-      .single();
-
-
-    if (erroGrupo) {
-
-      console.error(
-        "Erro ao abrir grupo:",
-        erroGrupo
-      );
-
-      alert(
-        "Não foi possível abrir o grupo."
-      );
-
-      return;
-    }
-
-
-    if (!grupo) {
-
-      alert(
-        "Grupo não encontrado."
-      );
-
-      return;
-    }
-
-
-    /*
-      Confirmamos que o utilizador pertence
-      ao grupo.
-    */
-
-    const {
-      data: membro,
-      error: erroMembro
-    } = await client
-      .from("group_members")
-      .select("group_id")
-      .eq(
-        "group_id",
-        groupId
-      )
-      .eq(
-        "user_id",
-        state.user.id
-      )
-      .maybeSingle();
-
-
-    if (erroMembro) {
-
-      console.error(
-        "Erro ao verificar membro:",
-        erroMembro
-      );
-
-      alert(
-        "Não foi possível verificar a sua participação."
-      );
-
-      return;
-    }
-
-
-    if (!membro) {
-
-      alert(
-        "Você não participa desta Kixikila."
-      );
-
-      return;
-    }
-
-
-    /*
-      Guardamos o grupo atual.
-    */
-
-    state.grupoAtual =
-      grupo;
-
-
-    /*
-      Carregamos os participantes.
-    */
-
-    await carregarParticipantesGrupo(
-      groupId
-    );
-
-
-    /*
-      Atualizamos as informações da rodada.
-    */
-
-    atualizarCabecaGrupo();
-
-
-    /*
-      Mostramos a página/área do grupo.
-    */
-
-    mostrarPagina(
-      "grupo"
-    );
-
-
-    /*
-      Caso exista um container específico
-      para o grupo, garantimos que esteja visível.
-    */
-
-    const areaGrupo =
-      el("grupoDetalhes");
-
-
-    if (areaGrupo) {
-
-      areaGrupo.style.display =
-        "block";
-
-      areaGrupo.scrollIntoView({
-        behavior: "smooth",
-        block: "start"
-      });
-
-    }
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao abrir grupo:",
-      erro
-    );
-
-    alert(
-      "Ocorreu um erro ao abrir o grupo."
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   2. CARREGAR PARTICIPANTES
-   ========================================================= */
-
-async function carregarParticipantesGrupo(
-  groupId
-) {
-
-  const container =
-    el("listaParticipantesGrupo");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  container.innerHTML =
-    "A carregar participantes...";
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("group_members")
-      .select(`
-        user_id,
-        profiles (
-          id,
-          nome
-        )
-      `)
-      .eq(
-        "group_id",
-        groupId
-      );
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar participantes:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar os participantes.";
-
-      return;
-    }
-
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
-
-      container.innerHTML =
-        "Ainda não existem participantes.";
-
-      return;
-    }
-
-
-    /*
-      Guardamos os participantes no grupo atual.
-    */
-
-    if (state.grupoAtual) {
-
-      state.grupoAtual.participantes =
-        data;
-
-    }
-
-
-    let html = "";
-
-
-    data.forEach(
-      (item, index) => {
-
-        const perfil =
-          item.profiles;
-
-
-        const nome =
-          perfil?.nome ||
-          "Participante " +
-          (index + 1);
-
-
-        const estaVez =
-          determinarIndiceVez(
-            index,
-            data.length
-          );
-
-
-        html += `
-          <div
-            class="participante-item"
-            data-user-id="${item.user_id}"
-            style="
-              padding:12px;
-              margin-bottom:8px;
-              border-radius:10px;
-              background:#f1f5f9;
-            "
-          >
-
-            <strong>
-              ${index + 1}.
-              ${nome}
-            </strong>
-
-            ${
-              estaVez
-                ? `
-                  <span
-                    style="
-                      display:block;
-                      margin-top:5px;
-                      font-size:13px;
-                    "
-                  >
-                    Vez atual
-                  </span>
-                `
-                : ""
-            }
-
-          </div>
-        `;
-
-      }
-    );
-
-
-    container.innerHTML =
-      html;
-
-
-    /*
-      Depois de carregar os participantes,
-      atualizamos a cabeça.
-    */
-
-    atualizarCabecaGrupo();
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar os participantes.";
-
-  }
-
-}
-
-
-/* =========================================================
-   3. DETERMINAR ÍNDICE DA VEZ
-   ========================================================= */
-
-function determinarIndiceVez(
-  index,
-  quantidade
-) {
-
-  if (
-    !state.grupoAtual ||
-    quantidade <= 0
-  ) {
-
-    return false;
-
-  }
-
-
-  const rodada =
-    numero(
-      state.grupoAtual.rodada_atual
-    ) || 1;
-
-
-  /*
-    A rodada 1 corresponde ao primeiro
-    participante.
-
-    Rodadas seguintes avançam ciclicamente.
-  */
-
-  const indiceAtual =
-    (rodada - 1) %
-    quantidade;
-
-
-  return index === indiceAtual;
-
-}
-
-
-/* =========================================================
-   4. OBTER PARTICIPANTE DA VEZ
-   ========================================================= */
-
-function obterParticipanteDaVez() {
-
-  if (
-    !state.grupoAtual ||
-    !Array.isArray(
-      state.grupoAtual.participantes
-    ) ||
-    state.grupoAtual.participantes.length === 0
-  ) {
-
-    return null;
-
-  }
-
-
-  const participantes =
-    state.grupoAtual.participantes;
-
-
-  const rodada =
-    numero(
-      state.grupoAtual.rodada_atual
-    ) || 1;
-
-
-  const indice =
-    (rodada - 1) %
-    participantes.length;
-
-
-  return participantes[indice] ||
-         null;
-
-}
-
-
-/* =========================================================
-   5. OBTER PRÓXIMO PARTICIPANTE
-   ========================================================= */
-
-function obterProximoParticipante() {
-
-  if (
-    !state.grupoAtual ||
-    !Array.isArray(
-      state.grupoAtual.participantes
-    ) ||
-    state.grupoAtual.participantes.length === 0
-  ) {
-
-    return null;
-
-  }
-
-
-  const participantes =
-    state.grupoAtual.participantes;
-
-
-  const rodada =
-    numero(
-      state.grupoAtual.rodada_atual
-    ) || 1;
-
-
-  const indiceAtual =
-    (rodada - 1) %
-    participantes.length;
-
-
-  const proximoIndice =
-    (indiceAtual + 1) %
-    participantes.length;
-
-
-  return participantes[
-    proximoIndice
-  ] || null;
-
-}
-
-
-/* =========================================================
-   6. ATUALIZAR CABEÇA DO GRUPO
-   ========================================================= */
-
-function atualizarCabecaGrupo() {
-
-  if (!state.grupoAtual) {
-    return;
-  }
-
-
-  const atual =
-    obterParticipanteDaVez();
-
-
-  const proximo =
-    obterProximoParticipante();
-
-
-  const nomeAtual =
-    atual?.profiles?.nome ||
-    "Aguardando participante";
-
-
-  const nomeProximo =
-    proximo?.profiles?.nome ||
-    "Aguardando";
-
-
-  const rodada =
-    numero(
-      state.grupoAtual.rodada_atual
-    ) || 1;
-
-
-  const totalRodadas =
-    numero(
-      state.grupoAtual.total_rodadas
-    ) ||
-    numero(
-      state.grupoAtual.max_membros
-    );
-
-
-  /*
-    Nome do grupo.
-  */
-
-  const elementoNome =
-    el("grupoNomeAtual");
-
-
-  if (elementoNome) {
-
-    elementoNome.innerText =
-      state.grupoAtual.nome;
-
-  }
-
-
-  /*
-    Valor.
-  */
-
-  const elementoValor =
-    el("grupoValorAtual");
-
-
-  if (elementoValor) {
-
-    elementoValor.innerText =
-      formatarKz(
-        state.grupoAtual.valor
-      );
-
-  }
-
-
-  /*
-    Rodada.
-  */
-
-  const elementoRodada =
-    el("grupoRodadaAtual");
-
-
-  if (elementoRodada) {
-
-    elementoRodada.innerText =
-      rodada +
-      "/" +
-      totalRodadas;
-
-  }
-
-
-  /*
-    VEZ DO FULANO
-  */
-
-  const elementoVez =
-    el("vezDoFulano");
-
-
-  if (elementoVez) {
-
-    elementoVez.innerText =
-      nomeAtual;
-
-  }
-
-
-  /*
-    PRÓXIMA VEZ
-  */
-
-  const elementoProximaVez =
-    el("proximaVez");
-
-
-  if (elementoProximaVez) {
-
-    elementoProximaVez.innerText =
-      nomeProximo;
-
-  }
-
-
-  /*
-    Também suportamos atributos data-*.
-  */
-
-  document
-    .querySelectorAll(
-      "[data-vez-atual]"
-    )
-    .forEach(elemento => {
-
-      elemento.innerText =
-        nomeAtual;
-
-    });
-
-
-  document
-    .querySelectorAll(
-      "[data-proxima-vez]"
-    )
-    .forEach(elemento => {
-
-      elemento.innerText =
-        nomeProximo;
-
-    });
-
-
-  document
-    .querySelectorAll(
-      "[data-rodada-atual]"
-    )
-    .forEach(elemento => {
-
-      elemento.innerText =
-        rodada;
-
-    });
-
-
-  document
-    .querySelectorAll(
-      "[data-total-rodadas]"
-    )
-    .forEach(elemento => {
-
-      elemento.innerText =
-        totalRodadas;
-
-    });
-
-}
-
-
-/* =========================================================
-   7. VERIFICAR SE É A VEZ DO UTILIZADOR
-   ========================================================= */
-
-function ehMinhaVez() {
-
-  if (
-    !state.user ||
-    !state.grupoAtual
-  ) {
-
-    return false;
-
-  }
-
-
-  const atual =
-    obterParticipanteDaVez();
-
-
-  return (
-    atual?.user_id ===
-    state.user.id
-  );
-
-}
-
-
-/* =========================================================
-   8. ATUALIZAR RODADA LOCALMENTE
-   ========================================================= */
-
-function calcularProximaRodada() {
-
-  if (!state.grupoAtual) {
-    return 1;
-  }
-
-
-  const atual =
-    numero(
-      state.grupoAtual.rodada_atual
-    ) || 1;
-
-
-  const total =
-    numero(
-      state.grupoAtual.total_rodadas
-    ) ||
-    numero(
-      state.grupoAtual.max_membros
-    );
-
-
-  if (atual >= total) {
-
-    return total;
-
-  }
-
-
-  return atual + 1;
-
-}
-
-
-/* =========================================================
-   9. ATUALIZAR RODADA NO BANCO
-   ========================================================= */
-
-async function atualizarRodada(
-  groupId,
-  novaRodada
-) {
-
-  if (!groupId) {
-
-    alert(
-      "Grupo inválido."
-    );
-
-    return false;
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("groups")
-      .update({
-
-        rodada_atual:
-          novaRodada
-
-      })
-      .eq(
-        "id",
-        groupId
-      )
-      .select("*")
-      .single();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao atualizar rodada:",
-        error
-      );
-
-      alert(
-        "Não foi possível atualizar a rodada."
-      );
-
-      return false;
-    }
-
-
-    /*
-      Atualiza o grupo atual.
-    */
-
-    state.grupoAtual =
-      data;
-
-
-    /*
-      Atualiza a interface.
-    */
-
-    atualizarCabecaGrupo();
-
-
-    return true;
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao atualizar rodada:",
-      erro
-    );
-
-    return false;
-
-  }
-
-}
-
-
-/* =========================================================
-   10. AVANÇAR RODADA
-   ========================================================= */
-
-async function avancarRodada() {
-
-  if (
-    !state.user ||
-    !state.grupoAtual
-  ) {
-
-    alert(
-      "Abra uma Kixikila primeiro."
-    );
-
-    return;
-  }
-
-
-  /*
-    Apenas o utilizador cuja vez está ativa
-    poderá avançar a rodada.
-
-    A regra financeira completa será tratada
-    na parte das transações.
-  */
-
-  if (!ehMinhaVez()) {
-
-    alert(
-      "Ainda não é a sua vez nesta Kixikila."
-    );
-
-    return;
-  }
-
-
-  const rodadaAtual =
-    numero(
-      state.grupoAtual.rodada_atual
-    ) || 1;
-
-
-  const totalRodadas =
-    numero(
-      state.grupoAtual.total_rodadas
-    ) ||
-    numero(
-      state.grupoAtual.max_membros
-    );
-
-
-  if (
-    rodadaAtual >=
-    totalRodadas
-  ) {
-
-    alert(
-      "Esta Kixikila já chegou à última rodada."
-    );
-
-    return;
-  }
-
-
-  const confirmar =
-    confirm(
-      "Confirmar avanço para a próxima rodada?"
-    );
-
-
-  if (!confirmar) {
-    return;
-  }
-
-
-  const sucesso =
-    await atualizarRodada(
-      state.grupoAtual.id,
-      rodadaAtual + 1
-    );
-
-
-  if (!sucesso) {
-    return;
-  }
-
-
-  /*
-    Recarregamos os participantes para
-    manter a interface sincronizada.
-  */
-
-  await carregarParticipantesGrupo(
-    state.grupoAtual.id
-  );
-
-
-  mostrarNotificacao(
-    "Rodada atualizada",
-    "A Kixikila avançou para a rodada " +
-    (rodadaAtual + 1) +
-    "."
-  );
-
-}
-
-
-/* =========================================================
-   11. EXPORTAR FUNÇÕES
-   ========================================================= */
-
-window.abrirGrupo =
-  abrirGrupo;
-
-window.carregarParticipantesGrupo =
-  carregarParticipantesGrupo;
-
-window.atualizarCabecaGrupo =
-  atualizarCabecaGrupo;
-
-window.ehMinhaVez =
-  ehMinhaVez;
-
-window.avancarRodada =
-  avancarRodada;
-
-
-/* =========================================================
-   FIM DA PARTE 7
-   ========================================================= */
-
-  /* =========================================================
-   KIXAPP
-   PARTE 8 — TRANSAÇÕES E HISTÓRICO
-   ========================================================= */
-
-
-/* =========================================================
-   1. REGISTAR TRANSAÇÃO
-   ========================================================= */
-
-async function registarTransacao({
-
-  userId = null,
-  groupId = null,
-  tipo = "",
-  valor = 0,
-  descricao = "",
-  referencia = null
-
-} = {}) {
-
-  const utilizador =
-    userId ||
-    state.user?.id;
-
-
-  if (!utilizador) {
-
-    console.error(
-      "Não existe utilizador para a transação."
-    );
-
-    return {
-      sucesso: false,
-      error: "Utilizador não autenticado."
-    };
-
-  }
-
-
-  const valorNumerico =
-    numero(valor);
-
-
-  if (
-    !valorNumerico ||
-    valorNumerico <= 0
-  ) {
-
-    return {
-      sucesso: false,
-      error: "Valor da transação inválido."
-    };
-
-  }
-
-
-  try {
-
-    /*
-      Mantemos os campos básicos compatíveis
-      com a tabela transactions.
-    */
-
-    const transacao = {
-
-      user_id: utilizador,
-
-      group_id: groupId,
-
-      tipo: tipo,
-
-      valor: valorNumerico,
-
-      descricao: descricao,
-
-      referencia: referencia
-
-    };
-
-
-    const {
-      data,
-      error
-    } = await client
-      .from("transactions")
-      .insert(transacao)
-      .select("*")
-      .single();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao registar transação:",
-        error
-      );
-
-      return {
-        sucesso: false,
-        error: error.message
-      };
-
-    }
-
-
-    return {
-
-      sucesso: true,
-
-      data: data
-
-    };
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao registar transação:",
-      erro
-    );
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Erro ao registar transação."
-
-    };
-
-  }
-
-}
-
-
-/* =========================================================
-   2. CARREGAR HISTÓRICO
-   ========================================================= */
-
-async function carregarHistorico() {
-
-  const container =
-    el("listaHistorico");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  if (!state.user) {
-
-    container.innerHTML =
-      "Entre na sua conta para consultar o histórico.";
-
-    return;
-  }
-
-
-  container.innerHTML =
-    "A carregar histórico...";
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("transactions")
-      .select(`
-        *,
-        groups (
-          id,
-          nome
-        )
-      `)
-      .eq(
-        "user_id",
-        state.user.id
-      )
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar histórico:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar o histórico.";
-
-      return;
-    }
-
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
-
-      container.innerHTML =
-        "Ainda não existem transações.";
-
-      return;
-    }
-
-
-    let html = "";
-
-
-    data.forEach(
-      transacao => {
-
-        const valor =
-          numero(
-            transacao.valor
-          );
-
-
-        const tipo =
-          String(
-            transacao.tipo ||
-            ""
-          ).toLowerCase();
-
-
-        const grupo =
-          transacao.groups;
-
-
-        const nomeGrupo =
-          grupo?.nome ||
-          "KixApp";
-
-
-        const dataTransacao =
-          transacao.created_at
-            ? new Date(
-                transacao.created_at
-              ).toLocaleString(
-                "pt-AO"
-              )
-            : "";
-
-
-        /*
-          Identifica visualmente se foi
-          entrada ou saída.
-        */
-
-        const entrada =
-          tipo.includes("entrada") ||
-          tipo.includes("deposito") ||
-          tipo.includes("depósito") ||
-          tipo.includes("credito") ||
-          tipo.includes("crédito") ||
-          tipo === "recebimento";
-
-
-        const sinal =
-          entrada
-            ? "+"
-            : "-";
-
-
-        html += `
-          <div
-            class="transacao-item"
-            style="
-              padding:12px;
-              margin-bottom:8px;
-              border-radius:10px;
-              background:#f8fafc;
-            "
-          >
-
-            <strong>
-              ${transacao.descricao || nomeGrupo}
-            </strong>
-
-            <br>
-
-            ${dataTransacao}
-
-            <br>
-
-            <span>
-              ${sinal}
-              ${formatarKz(valor)}
-            </span>
-
-          </div>
-        `;
-
-      }
-    );
-
-
-    container.innerHTML =
-      html;
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado no histórico:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar o histórico.";
-
-  }
-
-}
-
-
-/* =========================================================
-   3. OBTER HISTÓRICO DO UTILIZADOR
-   ========================================================= */
-
-async function obterHistoricoUsuario() {
-
-  if (!state.user) {
-    return [];
-  }
-
-
-  const {
-    data,
-    error
-  } = await client
-    .from("transactions")
+  const {data,error}=await client
+    .from("group_members")
     .select(`
-      *,
+      group_id,
       groups (
-        id,
-        nome
+        id,nome,valor,tipo,max_membros,rodada_atual,total_rodadas,status,privado
       )
     `)
-    .eq(
-      "user_id",
-      state.user.id
-    )
-    .order(
-      "created_at",
-      {
-        ascending: false
-      }
-    );
+    .eq("user_id",state.user.id);
 
-
-  if (error) {
-
-    console.error(
-      "Erro ao obter histórico:",
-      error
-    );
-
-    return [];
-
+  if(error){
+    console.error(error);
+    container.innerHTML="Não foi possível carregar os seus grupos.";
+    return;
   }
 
+  meusGruposCache=(data||[]).map(x=>x.groups).filter(Boolean);
 
-  return data || [];
+  if(!meusGruposCache.length){
+    container.innerHTML='<div class="empty">Você ainda não participa de nenhuma Kixikila.</div>';
+    return;
+  }
 
+  renderMeusGrupos("todos");
 }
 
+function renderMeusGrupos(filtro){
+  const container=$("listaMeusGrupos");
+  if(!container) return;
 
-/* =========================================================
-   4. ATUALIZAR SALDO A PARTIR DO PERFIL
-   ========================================================= */
+  const lista=meusGruposCache.filter(g=>filtro==="todos"||g.tipo===filtro);
 
-async function sincronizarSaldo() {
-
-  if (!state.user) {
-    return false;
+  if(!lista.length){
+    container.innerHTML='<div class="empty">Nenhum grupo nesta categoria.</div>';
+    return;
   }
 
+  container.innerHTML=lista.map(g=>`
+    <div class="grupo-card" data-tipo="${esc(g.tipo)}">
+      <strong>${esc(g.nome)}</strong>
+      <p class="muted">${formatarKz(g.valor)} · ${esc(g.tipo)}</p>
+      <p>Rodada: <b>${numero(g.rodada_atual)||1}/${numero(g.total_rodadas)||numero(g.max_membros)}</b></p>
+      <p>Estado: <span class="badge">${esc(g.status)}</span></p>
+      <button class="btn" onclick="abrirGrupo(${Number(g.id)})">Abrir grupo</button>
+    </div>`).join("");
+}
 
-  try {
+function filtrarMeus(tipo,botao){
+  document.querySelectorAll("#tabsMeus button").forEach(b=>b.classList.remove("active"));
+  if(botao) botao.classList.add("active");
+  renderMeusGrupos(tipo);
+}
 
-    const {
-      data,
-      error
-    } = await client
-      .from("profiles")
-      .select(
-        "id, saldo, plano, nome, email, telefone"
-      )
-      .eq(
-        "id",
-        state.user.id
-      )
+/* =========================================================
+   DETALHE DO GRUPO / CABEÇA
+   ========================================================= */
+
+async function abrirGrupo(groupId){
+  if(!state.user) return;
+
+  const box=$("grupoDetalhe");
+  box.classList.remove("hidden");
+  box.innerHTML="A carregar grupo...";
+
+  try{
+    const {data:grupo,error:erroGrupo}=await client
+      .from("groups")
+      .select("id,nome,valor,tipo,max_membros,rodada_atual,total_rodadas,status,privado")
+      .eq("id",groupId)
       .maybeSingle();
 
+    if(erroGrupo) throw erroGrupo;
+    if(!grupo) throw new Error("Grupo não encontrado.");
 
-    if (error) {
+    const {data:membros,error:erroMembros}=await client
+      .from("group_members")
+      .select("user_id")
+      .eq("group_id",groupId);
 
-      console.error(
-        "Erro ao sincronizar saldo:",
-        error
-      );
+    if(erroMembros) throw erroMembros;
 
-      return false;
+    const ids=(membros||[]).map(m=>m.user_id);
+    let perfis=[];
 
+    if(ids.length){
+      const {data:p,error:erroP}=await client
+        .from("profiles")
+        .select("id,nome,email")
+        .in("id",ids);
+      if(!erroP) perfis=p||[];
     }
 
-
-    if (!data) {
-
-      return false;
-
-    }
-
-
-    /*
-      O saldo mostrado na aplicação passa
-      a ser o saldo confirmado pelo banco.
-    */
-
-    state.profile = {
-
-      ...state.profile,
-
-      ...data
-
-    };
-
-
-    atualizarEstadoPlano();
-
-    atualizarUI();
-
-
-    return true;
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao sincronizar saldo:",
-      erro
-    );
-
-    return false;
-
-  }
-
-}
-
-
-/* =========================================================
-   5. PROCESSAR ENTRADA FINANCEIRA
-   ========================================================= */
-
-async function processarEntradaFinanceira({
-
-  valor,
-  groupId = null,
-  descricao = "Entrada"
-
-} = {}) {
-
-  if (!state.user) {
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Utilizador não autenticado."
-
-    };
-
-  }
-
-
-  const valorNumerico =
-    numero(valor);
-
-
-  if (
-    valorNumerico <= 0
-  ) {
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Valor inválido."
-
-    };
-
-  }
-
-
-  const saldoAtual =
-    numero(
-      state.profile?.saldo
-    );
-
-
-  const novoSaldo =
-    saldoAtual +
-    valorNumerico;
-
-
-  try {
-
-    /*
-      Primeiro atualizamos o saldo
-      no banco.
-    */
-
-    const {
-      data: perfil,
-      error: erroSaldo
-    } = await client
-      .from("profiles")
-      .update({
-
-        saldo: novoSaldo
-
-      })
-      .eq(
-        "id",
-        state.user.id
-      )
-      .select("*")
-      .single();
-
-
-    if (erroSaldo) {
-
-      console.error(
-        "Erro ao adicionar saldo:",
-        erroSaldo
-      );
-
-      return {
-
-        sucesso: false,
-
-        error:
-          erroSaldo.message
-
-      };
-
-    }
-
-
-    /*
-      Depois registamos a transação.
-    */
-
-    const transacao =
-      await registarTransacao({
-
-        userId:
-          state.user.id,
-
-        groupId:
-          groupId,
-
-        tipo:
-          "entrada",
-
-        valor:
-          valorNumerico,
-
-        descricao:
-          descricao
-
-      });
-
-
-    /*
-      Se o registo da transação falhar,
-      não fingimos que tudo ocorreu normalmente.
-    */
-
-    if (!transacao.sucesso) {
-
-      console.error(
-        "Saldo atualizado, mas transação não registada:",
-        transacao.error
-      );
-
-    }
-
-
-    state.profile =
-      perfil;
-
-
-    atualizarUI();
-
-
-    return {
-
-      sucesso: true,
-
-      data: perfil,
-
-      transacao:
-        transacao
-
-    };
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao processar entrada financeira:",
-      erro
-    );
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Erro ao processar entrada."
-
-    };
-
-  }
-
-}
-
-
-/* =========================================================
-   6. PROCESSAR SAÍDA FINANCEIRA
-   ========================================================= */
-
-async function processarSaidaFinanceira({
-
-  valor,
-  groupId = null,
-  descricao = "Saída"
-
-} = {}) {
-
-  if (!state.user) {
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Utilizador não autenticado."
-
-    };
-
-  }
-
-
-  const valorNumerico =
-    numero(valor);
-
-
-  if (
-    valorNumerico <= 0
-  ) {
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Valor inválido."
-
-    };
-
-  }
-
-
-  const saldoAtual =
-    numero(
-      state.profile?.saldo
-    );
-
-
-  /*
-    Nunca permitimos saldo negativo
-    através desta função.
-  */
-
-  if (
-    saldoAtual <
-    valorNumerico
-  ) {
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Saldo insuficiente."
-
-    };
-
-  }
-
-
-  const novoSaldo =
-    saldoAtual -
-    valorNumerico;
-
-
-  try {
-
-    /*
-      Atualiza o saldo.
-    */
-
-    const {
-      data: perfil,
-      error: erroSaldo
-    } = await client
-      .from("profiles")
-      .update({
-
-        saldo: novoSaldo
-
-      })
-      .eq(
-        "id",
-        state.user.id
-      )
-      .select("*")
-      .single();
-
-
-    if (erroSaldo) {
-
-      console.error(
-        "Erro ao atualizar saldo:",
-        erroSaldo
-      );
-
-      return {
-
-        sucesso: false,
-
-        error:
-          erroSaldo.message
-
-      };
-
-    }
-
-
-    /*
-      Regista a saída.
-    */
-
-    const transacao =
-      await registarTransacao({
-
-        userId:
-          state.user.id,
-
-        groupId:
-          groupId,
-
-        tipo:
-          "saida",
-
-        valor:
-          valorNumerico,
-
-        descricao:
-          descricao
-
-      });
-
-
-    if (!transacao.sucesso) {
-
-      console.error(
-        "Saldo atualizado, mas transação não registada:",
-        transacao.error
-      );
-
-    }
-
-
-    state.profile =
-      perfil;
-
-
-    atualizarUI();
-
-
-    return {
-
-      sucesso: true,
-
-      data: perfil,
-
-      transacao:
-        transacao
-
-    };
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado:",
-      erro
-    );
-
-    return {
-
-      sucesso: false,
-
-      error:
-        "Erro ao processar saída."
-
-    };
-
-  }
-
-}
-
-
-/* =========================================================
-   7. ABRIR HISTÓRICO
-   ========================================================= */
-
-async function abrirHistorico() {
-
-  mostrarPagina(
-    "historico"
-  );
-
-
-  await carregarHistorico();
-
-}
-
-
-/* =========================================================
-   8. EXPORTAR FUNÇÕES
-   ========================================================= */
-
-window.registarTransacao =
-  registarTransacao;
-
-window.carregarHistorico =
-  carregarHistorico;
-
-window.obterHistoricoUsuario =
-  obterHistoricoUsuario;
-
-window.sincronizarSaldo =
-  sincronizarSaldo;
-
-window.processarEntradaFinanceira =
-  processarEntradaFinanceira;
-
-window.processarSaidaFinanceira =
-  processarSaidaFinanceira;
-
-window.abrirHistorico =
-  abrirHistorico;
-
-
-/* =========================================================
-   FIM DA PARTE 8
-   ========================================================= */
-
-  /* =========================================================
-   KIXAPP
-   PARTE 9 — ADMINISTRAÇÃO
-   ========================================================= */
-
-
-/* =========================================================
-   1. ESTADO DO ADMIN
-   ========================================================= */
-
-state.isAdmin = false;
-
-state.adminRole = null;
-
-
-/* =========================================================
-   2. VERIFICAR ADMINISTRADOR
-   ========================================================= */
-
-async function verificarAdministrador() {
-
-  if (!state.user) {
-
-    state.isAdmin = false;
-
-    state.adminRole = null;
-
-    return false;
-  }
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("admin_users")
-      .select(`
-        user_id,
-        role
-      `)
-      .eq(
-        "user_id",
-        state.user.id
-      )
-      .maybeSingle();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao verificar administrador:",
-        error
-      );
-
-      state.isAdmin = false;
-
-      state.adminRole = null;
-
-      return false;
-    }
-
-
-    if (!data) {
-
-      state.isAdmin = false;
-
-      state.adminRole = null;
-
-      return false;
-    }
-
-
-    state.isAdmin = true;
-
-    state.adminRole =
-      data.role || "admin";
-
-
-    return true;
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao verificar administrador:",
-      erro
-    );
-
-    state.isAdmin = false;
-
-    state.adminRole = null;
-
-    return false;
-
-  }
-
-}
-
-
-/* =========================================================
-   3. EXIGIR ACESSO ADMIN
-   ========================================================= */
-
-async function exigirAdmin() {
-
-  const admin =
-    await verificarAdministrador();
-
-
-  if (!admin) {
-
-    alert(
-      "Sem permissão de administrador."
-    );
-
-    mostrarPagina(
-      "home"
-    );
-
-    return false;
-  }
-
-
-  return true;
-
-}
-
-
-/* =========================================================
-   4. ABRIR PAINEL ADMIN
-   ========================================================= */
-
-async function abrirAdmin() {
-
-  const permitido =
-    await exigirAdmin();
-
-
-  if (!permitido) {
-    return;
-  }
-
-
-  mostrarPagina(
-    "admin"
-  );
-
-
-  await carregarDadosAdmin();
-
-}
-
-
-/* =========================================================
-   5. CARREGAR DADOS ADMINISTRATIVOS
-   ========================================================= */
-
-async function carregarDadosAdmin() {
-
-  const permitido =
-    await exigirAdmin();
-
-
-  if (!permitido) {
-    return;
-  }
-
-
-  /*
-    Elementos de estatísticas.
-  */
-
-  const totalUtilizadores =
-    el("adminTotalUtilizadores");
-
-  const totalGrupos =
-    el("adminTotalGrupos");
-
-  const gruposAbertos =
-    el("adminGruposAbertos");
-
-  const gruposConcluidos =
-    el("adminGruposConcluidos");
-
-
-  try {
-
-    /*
-      Total de utilizadores.
-    */
-
-    const {
-      count: utilizadores,
-      error: erroUtilizadores
-    } = await client
-      .from("profiles")
-      .select("*", {
-        count: "exact",
-        head: true
-      });
-
-
-    if (erroUtilizadores) {
-
-      console.error(
-        "Erro ao contar utilizadores:",
-        erroUtilizadores
-      );
-
-    }
-
-
-    /*
-      Total de grupos.
-    */
-
-    const {
-      count: grupos,
-      error: erroGrupos
-    } = await client
-      .from("groups")
-      .select("*", {
-        count: "exact",
-        head: true
-      });
-
-
-    if (erroGrupos) {
-
-      console.error(
-        "Erro ao contar grupos:",
-        erroGrupos
-      );
-
-    }
-
-
-    /*
-      Grupos abertos.
-    */
-
-    const {
-      count: abertos,
-      error: erroAbertos
-    } = await client
-      .from("groups")
-      .select("*", {
-        count: "exact",
-        head: true
-      })
-      .eq(
-        "status",
-        "aberto"
-      );
-
-
-    if (erroAbertos) {
-
-      console.error(
-        "Erro ao contar grupos abertos:",
-        erroAbertos
-      );
-
-    }
-
-
-    /*
-      Grupos concluídos.
-    */
-
-    const {
-      count: concluidos,
-      error: erroConcluidos
-    } = await client
-      .from("groups")
-      .select("*", {
-        count: "exact",
-        head: true
-      })
-      .eq(
-        "status",
-        "concluido"
-      );
-
-
-    if (erroConcluidos) {
-
-      console.error(
-        "Erro ao contar grupos concluídos:",
-        erroConcluidos
-      );
-
-    }
-
-
-    /*
-      Atualizamos a interface.
-    */
-
-    if (totalUtilizadores) {
-
-      totalUtilizadores.innerText =
-        utilizadores || 0;
-
-    }
-
-
-    if (totalGrupos) {
-
-      totalGrupos.innerText =
-        grupos || 0;
-
-    }
-
-
-    if (gruposAbertos) {
-
-      gruposAbertos.innerText =
-        abertos || 0;
-
-    }
-
-
-    if (gruposConcluidos) {
-
-      gruposConcluidos.innerText =
-        concluidos || 0;
-
-    }
-
-
-    /*
-      Carrega listas administrativas.
-    */
-
-    await carregarUtilizadoresAdmin();
-
-    await carregarGruposAdmin();
-
-    await carregarTransacoesAdmin();
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao carregar painel admin:",
-      erro
-    );
-
-  }
-
-}
-
-
-/* =========================================================
-   6. CARREGAR UTILIZADORES ADMIN
-   ========================================================= */
-
-async function carregarUtilizadoresAdmin() {
-
-  const container =
-    el("listaAdminUtilizadores");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  const permitido =
-    await exigirAdmin();
-
-
-  if (!permitido) {
-    return;
-  }
-
-
-  container.innerHTML =
-    "A carregar utilizadores...";
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("profiles")
-      .select(`
-        id,
-        nome,
-        email,
-        telefone,
-        saldo,
-        plano,
-        created_at
-      `)
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar utilizadores:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar os utilizadores.";
-
-      return;
-    }
-
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
-
-      container.innerHTML =
-        "Não existem utilizadores.";
-
-      return;
-    }
-
-
-    let html = "";
-
-
-    data.forEach(
-      utilizador => {
-
-        html += `
-          <div
-            class="admin-item"
-            style="
-              padding:12px;
-              margin-bottom:8px;
-              border-radius:10px;
-              background:#f8fafc;
-            "
-          >
-
-            <strong>
-              ${utilizador.nome || "Sem nome"}
-            </strong>
-
-            <br>
-
-            ${utilizador.email || ""}
-
-            <br>
-
-            Telefone:
-            ${utilizador.telefone || "Não informado"}
-
-            <br>
-
-            Saldo:
-            ${formatarKz(utilizador.saldo)}
-
-            <br>
-
-            Plano:
-            ${utilizador.plano || "Basic"}
-
-          </div>
-        `;
-
-      }
-    );
-
-
-    container.innerHTML =
-      html;
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar os utilizadores.";
-
-  }
-
-}
-
-
-/* =========================================================
-   7. CARREGAR GRUPOS ADMIN
-   ========================================================= */
-
-async function carregarGruposAdmin() {
-
-  const container =
-    el("listaAdminGrupos");
-
-
-  if (!container) {
-    return;
-  }
-
-
-  const permitido =
-    await exigirAdmin();
-
-
-  if (!permitido) {
-    return;
-  }
-
-
-  container.innerHTML =
-    "A carregar grupos...";
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("groups")
-      .select(`
-        id,
-        nome,
-        valor,
-        tipo,
-        max_membros,
-        rodada_atual,
-        total_rodadas,
-        status,
-        privado,
-        created_at
-      `)
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      );
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar grupos admin:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar os grupos.";
-
-      return;
-    }
-
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
-
-      container.innerHTML =
-        "Não existem grupos.";
-
-      return;
-    }
-
-
-    let html = "";
-
-
-    for (const grupo of data) {
-
-      const {
-        count
-      } = await client
-        .from("group_members")
-        .select("*", {
-          count: "exact",
-          head: true
-        })
-        .eq(
-          "group_id",
-          grupo.id
-        );
-
-
-      html += `
-        <div
-          class="admin-item"
-          style="
-            padding:12px;
-            margin-bottom:8px;
-            border-radius:10px;
-            background:#f8fafc;
-          "
-        >
-
-          <strong>
-            ${grupo.nome}
-          </strong>
-
-          <br>
-
-          Valor:
-          ${formatarKz(grupo.valor)}
-
-          <br>
-
-          Tipo:
-          ${grupo.tipo || ""}
-
-          <br>
-
-          Participantes:
-          ${count || 0}/${grupo.max_membros}
-
-          <br>
-
-          Rodada:
-          ${grupo.rodada_atual || 1}/
-          ${grupo.total_rodadas || grupo.max_membros}
-
-          <br>
-
-          Estado:
-          ${grupo.status}
-
-          <br><br>
-
-          <button
-            onclick="adminAtualizarStatusGrupo(${grupo.id})"
-            style="
-              padding:8px 12px;
-              border:none;
-              border-radius:8px;
-              cursor:pointer;
-            "
-          >
-            Alterar estado
-          </button>
-
+    const lista=perfis.map((p,i)=>`
+      <div class="stat">
+        <b>${i+1}. ${esc(p.nome||p.email||"Participante")}</b>
+        ${i===0?'<span class="badge">1ª vez</span>':""}
+      </div>`).join("");
+
+    box.innerHTML=`
+      <div class="topbar-row">
+        <div>
+          <h3 style="margin:0">${esc(grupo.nome)}</h3>
+          <span class="muted">${formatarKz(grupo.valor)} · ${esc(grupo.tipo)}</span>
         </div>
-      `;
+        <button class="btn small secondary" onclick="$('grupoDetalhe').classList.add('hidden')">Fechar</button>
+      </div>
 
-    }
+      <hr style="border:0;border-top:1px solid #eee;margin:14px 0">
 
+      <p><b>Vez atual:</b> ${esc(perfis[0]?.nome||"A definir")}</p>
+      <p><b>Próxima vez:</b> ${esc(perfis[1]?.nome||"A definir")}</p>
+      <p><b>Rodada:</b> ${numero(grupo.rodada_atual)||1}/${numero(grupo.total_rodadas)||numero(grupo.max_membros)}</p>
+      <p><b>Participantes:</b> ${ids.length}/${numero(grupo.max_membros)}</p>
+      <p><b>Estado:</b> ${esc(grupo.status)}</p>
 
-    container.innerHTML =
-      html;
+      <h4>Ordem dos participantes</h4>
+      <div class="grid">${lista||'<div class="empty">Sem participantes.</div>'}</div>
 
+      <button class="btn danger" onclick="sairGrupo(${Number(groupId)})">Sair do grupo</button>`;
 
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar os grupos.";
-
+    state.grupoAtual=grupo;
+    box.scrollIntoView({behavior:"smooth"});
+  }catch(e){
+    console.error(e);
+    box.innerHTML="Não foi possível abrir este grupo.";
   }
-
 }
 
-
 /* =========================================================
-   8. ALTERAR STATUS DO GRUPO
+   HISTÓRICO
    ========================================================= */
 
-async function adminAtualizarStatusGrupo(
-  groupId
-) {
+async function carregarHistorico(){
+  const container=$("historico");
+  if(!container || !state.user) return;
 
-  const permitido =
-    await exigirAdmin();
+  container.innerHTML="A carregar histórico...";
 
+  const {data,error}=await client
+    .from("transactions")
+    .select("*")
+    .eq("user_id",state.user.id)
+    .order("created_at",{ascending:false});
 
-  if (!permitido) {
+  if(error){
+    console.error(error);
+    container.innerHTML="Não foi possível carregar o histórico.";
     return;
   }
 
-
-  const novoStatus =
-    prompt(
-      "Digite o novo estado do grupo:\n\n" +
-      "aberto\n" +
-      "fechado\n" +
-      "concluido"
-    );
-
-
-  if (!novoStatus) {
+  if(!data?.length){
+    container.innerHTML='<div class="empty">Nenhuma transação.</div>';
     return;
   }
 
+  container.innerHTML=data.map(t=>{
+    const entrada=["deposito","entrada","recebimento"].includes(String(t.tipo||"").toLowerCase());
+    const sinal=entrada?"+":"";
+    return `
+      <div class="grupo-card">
+        <b>${esc(t.descricao||t.tipo||"Transação")}</b>
+        <div>${sinal}${formatarKz(t.valor)}</div>
+        <small class="muted">${t.created_at?new Date(t.created_at).toLocaleString("pt-AO"):""}</small>
+      </div>`;
+  }).join("");
+}
 
-  const status =
-    novoStatus
-      .trim()
-      .toLowerCase();
+/* =========================================================
+   DADOS DA APP
+   ========================================================= */
 
+async function carregarDadosApp(){
+  await Promise.allSettled([
+    carregarMeusGrupos(),
+    carregarGruposDisponiveis(),
+    carregarHistorico(),
+    calcularGruposUsados()
+  ]);
+}
 
-  const estadosPermitidos = [
-    "aberto",
-    "fechado",
-    "concluido"
-  ];
+/* =========================================================
+   ADMIN
+   ========================================================= */
 
-
-  if (
-    !estadosPermitidos.includes(
-      status
-    )
-  ) {
-
-    alert(
-      "Estado inválido."
-    );
-
-    return;
+async function verificarAdministrador(){
+  if(!state.user){
+    state.isAdmin=false;
+    state.adminRole=null;
+    return false;
   }
 
+  const {data,error}=await client
+    .from("admin_users")
+    .select("user_id,role")
+    .eq("user_id",state.user.id)
+    .maybeSingle();
 
-  const {
-    error
-  } = await client
-    .from("groups")
-    .update({
-
-      status: status
-
-    })
-    .eq(
-      "id",
-      groupId
-    );
-
-
-  if (error) {
-
-    console.error(
-      "Erro ao alterar estado:",
-      error
-    );
-
-    alert(
-      "Não foi possível alterar o estado."
-    );
-
-    return;
+  if(error){
+    console.error("Admin:",error);
+    state.isAdmin=false;
+    state.adminRole=null;
+    return false;
   }
 
+  state.isAdmin=!!data;
+  state.adminRole=data?.role||null;
+  return state.isAdmin;
+}
 
-  mostrarNotificacao(
-    "Grupo atualizado",
-    "O estado do grupo foi alterado."
-  );
+function exigirAdmin(){
+  if(!state.isAdmin){
+    alert("Sem permissão de administrador.");
+    mostrarPagina("inicio");
+    return false;
+  }
+  return true;
+}
 
+function atualizarAcessoAdmin(){
+  $("btnAdmin").classList.toggle("hidden",!state.isAdmin);
+}
 
+async function abrirAdmin(){
+  if(!exigirAdmin()) return;
+  mostrarPagina("admin");
   await carregarDadosAdmin();
-
 }
 
+async function carregarDadosAdmin(){
+  if(!exigirAdmin()) return;
 
-/* =========================================================
-   9. CARREGAR TRANSAÇÕES ADMIN
-   ========================================================= */
+  const [u,g,a,c]=await Promise.all([
+    client.from("profiles").select("*",{count:"exact",head:true}),
+    client.from("groups").select("*",{count:"exact",head:true}),
+    client.from("groups").select("*",{count:"exact",head:true}).eq("status","aberto"),
+    client.from("groups").select("*",{count:"exact",head:true}).eq("status","concluido")
+  ]);
 
-async function carregarTransacoesAdmin() {
+  $("adminTotalUtilizadores").innerText=u.count||0;
+  $("adminTotalGrupos").innerText=g.count||0;
+  $("adminGruposAbertos").innerText=a.count||0;
+  $("adminGruposConcluidos").innerText=c.count||0;
 
-  const container =
-    el("listaAdminTransacoes");
+  await Promise.allSettled([
+    carregarUtilizadoresAdmin(),
+    carregarGruposAdmin(),
+    carregarTransacoesAdmin()
+  ]);
+}
 
+async function carregarUtilizadoresAdmin(){
+  if(!exigirAdmin()) return;
 
-  if (!container) {
+  const {data,error}=await client
+    .from("profiles")
+    .select("id,nome,email,telefone,saldo,plano,grupos_usados,created_at")
+    .order("created_at",{ascending:false});
+
+  if(error){
+    $("listaAdminUtilizadores").innerText="Erro ao carregar utilizadores.";
     return;
   }
 
+  $("listaAdminUtilizadores").innerHTML=(data||[]).map(p=>`
+    <div class="grupo-card">
+      <b>${esc(p.nome||"Sem nome")}</b>
+      <div class="muted">${esc(p.email||"")}</div>
+      <div>Saldo: ${formatarKz(p.saldo)}</div>
+      <div>Plano: ${esc(p.plano||"Basic")}</div>
+      <div>Grupos: ${numero(p.grupos_usados)}</div>
+    </div>`).join("")||'<div class="empty">Nenhum utilizador.</div>';
+}
 
-  const permitido =
-    await exigirAdmin();
+async function carregarGruposAdmin(){
+  if(!exigirAdmin()) return;
 
+  const {data,error}=await client
+    .from("groups")
+    .select("id,nome,valor,tipo,max_membros,rodada_atual,total_rodadas,status,privado")
+    .order("created_at",{ascending:false});
 
-  if (!permitido) {
+  if(error){
+    $("listaAdminGrupos").innerText="Erro ao carregar grupos.";
     return;
   }
 
-
-  container.innerHTML =
-    "A carregar transações...";
-
-
-  try {
-
-    const {
-      data,
-      error
-    } = await client
-      .from("transactions")
-      .select(`
-        *,
-        profiles (
-          id,
-          nome,
-          email
-        ),
-        groups (
-          id,
-          nome
-        )
-      `)
-      .order(
-        "created_at",
-        {
-          ascending: false
-        }
-      )
-      .limit(100);
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao carregar transações:",
-        error
-      );
-
-      container.innerHTML =
-        "Não foi possível carregar as transações.";
-
-      return;
-    }
-
-
-    if (
-      !data ||
-      data.length === 0
-    ) {
-
-      container.innerHTML =
-        "Não existem transações.";
-
-      return;
-    }
-
-
-    let html = "";
-
-
-    data.forEach(
-      transacao => {
-
-        const nome =
-          transacao.profiles?.nome ||
-          "Utilizador";
-
-
-        const grupo =
-          transacao.groups?.nome ||
-          "Sem grupo";
-
-
-        html += `
-          <div
-            class="admin-item"
-            style="
-              padding:12px;
-              margin-bottom:8px;
-              border-radius:10px;
-              background:#f8fafc;
-            "
-          >
-
-            <strong>
-              ${nome}
-            </strong>
-
-            <br>
-
-            ${transacao.tipo || ""}
-
-            <br>
-
-            ${formatarKz(transacao.valor)}
-
-            <br>
-
-            Grupo:
-            ${grupo}
-
-            <br>
-
-            ${transacao.descricao || ""}
-
-          </div>
-        `;
-
-      }
-    );
-
-
-    container.innerHTML =
-      html;
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado:",
-      erro
-    );
-
-    container.innerHTML =
-      "Não foi possível carregar as transações.";
-
+  const out=[];
+  for(const g of data||[]){
+    const qtd=await contarMembros(g.id);
+    out.push(`
+      <div class="grupo-card">
+        <b>${esc(g.nome)}</b>
+        <div>${formatarKz(g.valor)} · ${esc(g.tipo)}</div>
+        <div>Participantes: ${qtd}/${numero(g.max_membros)}</div>
+        <div>Estado: ${esc(g.status)}</div>
+        <button class="btn secondary" onclick="adminAtualizarStatusGrupo(${Number(g.id)})">Alterar estado</button>
+      </div>`);
   }
-
+  $("listaAdminGrupos").innerHTML=out.join("")||'<div class="empty">Nenhum grupo.</div>';
 }
 
+async function adminAtualizarStatusGrupo(groupId){
+  if(!exigirAdmin()) return;
 
-/* =========================================================
-   10. MOSTRAR/OCULTAR ÁREA ADMIN
-   ========================================================= */
+  const novo=prompt("Novo estado: aberto, fechado ou concluido");
+  if(!novo) return;
 
-async function atualizarAcessoAdmin() {
-
-  const admin =
-    await verificarAdministrador();
-
-
-  const elementos =
-    document.querySelectorAll(
-      "[data-admin-only]"
-    );
-
-
-  elementos.forEach(
-    elemento => {
-
-      elemento.style.display =
-        admin
-          ? ""
-          : "none";
-
-    }
-  );
-
-
-  const botaoAdmin =
-    el("btnAdmin");
-
-
-  if (botaoAdmin) {
-
-    botaoAdmin.style.display =
-      admin
-        ? ""
-        : "none";
-
+  const status=novo.trim().toLowerCase();
+  if(!["aberto","fechado","concluido"].includes(status)){
+    return alert("Estado inválido.");
   }
 
+  const {error}=await client.from("groups").update({status}).eq("id",groupId);
+  if(error) return alert(error.message);
+
+  mostrarNotificacao("Grupo atualizado","O estado foi alterado.");
+  await carregarDadosAdmin();
 }
 
+async function carregarTransacoesAdmin(){
+  if(!exigirAdmin()) return;
 
-/* =========================================================
-   11. EXPORTAR FUNÇÕES ADMIN
-   ========================================================= */
+  const {data,error}=await client
+    .from("transactions")
+    .select("*")
+    .order("created_at",{ascending:false})
+    .limit(100);
 
-window.verificarAdministrador =
-  verificarAdministrador;
-
-window.exigirAdmin =
-  exigirAdmin;
-
-window.abrirAdmin =
-  abrirAdmin;
-
-window.carregarDadosAdmin =
-  carregarDadosAdmin;
-
-window.carregarUtilizadoresAdmin =
-  carregarUtilizadoresAdmin;
-
-window.carregarGruposAdmin =
-  carregarGruposAdmin;
-
-window.adminAtualizarStatusGrupo =
-  adminAtualizarStatusGrupo;
-
-window.carregarTransacoesAdmin =
-  carregarTransacoesAdmin;
-
-window.atualizarAcessoAdmin =
-  atualizarAcessoAdmin;
-
-
-/* =========================================================
-   FIM DA PARTE 9
-   ========================================================= */
-
-  /* =========================================================
-   KIXAPP
-   PARTE 10 — FINALIZAÇÃO E INICIALIZAÇÃO
-   ========================================================= */
-
-
-/* =========================================================
-   1. ATUALIZAR TUDO
-   ========================================================= */
-
-async function atualizarTudo() {
-
-  if (!state.user) {
+  if(error){
+    $("listaAdminTransacoes").innerText="Erro ao carregar transações.";
     return;
   }
 
+  $("listaAdminTransacoes").innerHTML=(data||[]).map(t=>`
+    <div class="grupo-card">
+      <b>${esc(t.tipo||"transação")}</b>
+      <div>${formatarKz(t.valor)}</div>
+      <div class="muted">${esc(t.descricao||"")}</div>
+    </div>`).join("")||'<div class="empty">Nenhuma transação.</div>';
+}
 
-  try {
+/* =========================================================
+   SINCRONIZAÇÃO
+   ========================================================= */
 
-    /*
-      Atualiza o perfil e saldo.
-    */
+async function sincronizarSaldo(){
+  if(!state.user) return;
 
+  const {data,error}=await client
+    .from("profiles")
+    .select("*")
+    .eq("id",state.user.id)
+    .maybeSingle();
+
+  if(error||!data) return;
+
+  state.profile=data;
+  atualizarEstado();
+}
+
+let intervaloAtualizacao=null;
+
+function iniciarAtualizacaoAutomatica(){
+  if(intervaloAtualizacao) clearInterval(intervaloAtualizacao);
+
+  intervaloAtualizacao=setInterval(async()=>{
+    if(!state.user) return;
     await sincronizarSaldo();
-
-
-    /*
-      Verifica permissões administrativas.
-    */
-
-    await verificarAdministrador();
-
-
-    /*
-      Atualiza acesso ao painel admin.
-    */
-
-    await atualizarAcessoAdmin();
-
-
-    /*
-      Carrega os grupos do utilizador.
-    */
-
-    await carregarMeusGrupos();
-
-
-    /*
-      Carrega grupos públicos.
-    */
-
-    await carregarGruposDisponiveis();
-
-
-    /*
-      Atualiza contagem de grupos usados.
-    */
-
     await calcularGruposUsados();
-
-
-    /*
-      Atualiza a interface.
-    */
-
-    atualizarUI();
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao atualizar aplicação:",
-      erro
-    );
-
-  }
-
+  },30000);
 }
 
-
-/* =========================================================
-   2. INICIALIZAÇÃO DO UTILIZADOR
-   ========================================================= */
-
-async function inicializarUsuario() {
-
-  if (!state.user) {
-    return;
-  }
-
-
-  try {
-
-    /*
-      Primeiro carregamos o perfil.
-    */
-
-    await carregarPerfil();
-
-
-    /*
-      Depois verificamos o administrador.
-    */
-
-    await verificarAdministrador();
-
-
-    /*
-      Atualizamos o acesso administrativo.
-    */
-
-    await atualizarAcessoAdmin();
-
-
-    /*
-      Carregamos os grupos.
-    */
-
+document.addEventListener("visibilitychange",async()=>{
+  if(document.visibilityState==="visible" && state.user){
+    await sincronizarSaldo();
     await carregarMeusGrupos();
-
-    await carregarGruposDisponiveis();
-
-
-    /*
-      Calculamos os grupos usados.
-    */
-
-    await calcularGruposUsados();
-
-
-    /*
-      Atualizamos a interface.
-    */
-
-    atualizarUI();
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro ao inicializar utilizador:",
-      erro
-    );
-
   }
-
-}
-
+});
 
 /* =========================================================
-   3. VERIFICAR SESSÃO
+   AUTH LISTENER
    ========================================================= */
 
-async function verificarSessao() {
+client.auth.onAuthStateChange(async(event,session)=>{
+  if(event==="SIGNED_OUT"){
+    state.user=null;
+    state.profile=null;
+    state.isAdmin=false;
+    $("loginBox").style.display="block";
+    $("app").style.display="none";
+    $("menu").style.display="none";
+  }
 
-  try {
-
-    const {
-      data,
-      error
-    } = await client.auth.getSession();
-
-
-    if (error) {
-
-      console.error(
-        "Erro ao verificar sessão:",
-        error
-      );
-
-      return;
-    }
-
-
-    const sessao =
-      data?.session;
-
-
-    if (!sessao?.user) {
-
-      state.user =
-        null;
-
-      state.profile =
-        null;
-
-      state.isAdmin =
-        false;
-
-      state.adminRole =
-        null;
-
-
-      /*
-        Mostra a página inicial/login.
-      */
-
-      mostrarPagina(
-        "login"
-      );
-
-
-      return;
-    }
-
-
-    /*
-      Guardamos o utilizador.
-    */
-
-    state.user =
-      sessao.user;
-
-
-    /*
-      Inicializamos os dados.
-    */
-
+  if(event==="SIGNED_IN" && session?.user){
+    state.user=session.user;
     await inicializarUsuario();
-
-
-    /*
-      Mostra a página principal.
-    */
-
-    mostrarPagina(
-      "home"
-    );
-
-
-  } catch (erro) {
-
-    console.error(
-      "Erro inesperado ao verificar sessão:",
-      erro
-    );
-
   }
-
-}
-
+});
 
 /* =========================================================
-   4. OUVIR ALTERAÇÕES DE AUTENTICAÇÃO
+   INICIALIZAÇÃO
    ========================================================= */
 
-client.auth.onAuthStateChange(
-  async (event, session) => {
-
-    console.log(
-      "Auth:",
-      event
-    );
-
-
-    /*
-      LOGIN
-    */
-
-    if (
-      event ===
-      "SIGNED_IN"
-    ) {
-
-      state.user =
-        session?.user ||
-        null;
-
-
-      if (state.user) {
-
-        await inicializarUsuario();
-
-        mostrarPagina(
-          "home"
-        );
-
-      }
-
-      return;
-    }
-
-
-    /*
-      LOGOUT
-    */
-
-    if (
-      event ===
-      "SIGNED_OUT"
-    ) {
-
-      state.user =
-        null;
-
-      state.profile =
-        null;
-
-      state.isAdmin =
-        false;
-
-      state.adminRole =
-        null;
-
-      state.grupoAtual =
-        null;
-
-
-      mostrarPagina(
-        "login"
-      );
-
-
-      return;
-    }
-
-
-    /*
-      TOKEN ATUALIZADO
-    */
-
-    if (
-      event ===
-      "TOKEN_REFRESHED"
-    ) {
-
-      state.user =
-        session?.user ||
-        state.user ||
-        null;
-
-
-      if (state.user) {
-
-        await sincronizarSaldo();
-
-      }
-
-    }
-
-  }
-);
-
+window.addEventListener("DOMContentLoaded",async()=>{
+  await verificarSessao();
+  iniciarAtualizacaoAutomatica();
+});
 
 /* =========================================================
-   5. RECARREGAR DADOS QUANDO A PÁGINA VOLTA AO FOCO
+   FUNÇÕES DISPONÍVEIS AO HTML
    ========================================================= */
 
-document.addEventListener(
-  "visibilitychange",
-  async () => {
-
-    if (
-      document.visibilityState !==
-      "visible"
-    ) {
-
-      return;
-
-    }
-
-
-    if (!state.user) {
-      return;
-    }
-
-
-    /*
-      Atualiza somente quando o utilizador
-      volta para a aplicação.
-    */
-
-    await atualizarTudo();
-
-  }
-);
-
-
-/* =========================================================
-   6. ATUALIZAÇÃO AUTOMÁTICA
-   ========================================================= */
-
-let intervaloAtualizacao =
-  null;
-
-
-function iniciarAtualizacaoAutomatica() {
-
-  /*
-    Evita criar vários intervalos.
-  */
-
-  if (
-    intervaloAtualizacao
-  ) {
-
-    clearInterval(
-      intervaloAtualizacao
-    );
-
-  }
-
-
-  intervaloAtualizacao =
-    setInterval(
-      async () => {
-
-        if (!state.user) {
-          return;
-        }
-
-
-        await sincronizarSaldo();
-
-
-        await carregarMeusGrupos();
-
-
-        await calcularGruposUsados();
-
-
-        atualizarUI();
-
-      },
-      30000
-    );
-
-}
-
-
-/* =========================================================
-   7. PARAR ATUALIZAÇÃO AUTOMÁTICA
-   ========================================================= */
-
-function pararAtualizacaoAutomatica() {
-
-  if (
-    intervaloAtualizacao
-  ) {
-
-    clearInterval(
-      intervaloAtualizacao
-    );
-
-    intervaloAtualizacao =
-      null;
-
-  }
-
-}
-
-
-/* =========================================================
-   8. INICIAR APLICAÇÃO
-   ========================================================= */
-
-window.addEventListener(
-  "DOMContentLoaded",
-  async () => {
-
-    console.log(
-      "KixApp: iniciando..."
-    );
-
-
-    await verificarSessao();
-
-
-    iniciarAtualizacaoAutomatica();
-
-
-    console.log(
-      "KixApp: aplicação iniciada."
-    );
-
-  }
-);
-
-
-/* =========================================================
-   9. EXPORTAÇÃO FINAL
-   ========================================================= */
-
-window.atualizarTudo =
-  atualizarTudo;
-
-window.inicializarUsuario =
-  inicializarUsuario;
-
-window.verificarSessao =
-  verificarSessao;
-
-window.iniciarAtualizacaoAutomatica =
-  iniciarAtualizacaoAutomatica;
-
-window.pararAtualizacaoAutomatica =
-  pararAtualizacaoAutomatica;
-
-
-/* =========================================================
-   FIM DO JAVASCRIPT
-   ========================================================= */
-  </script>
+window.login=login;
+window.signup=signup;
+window.logout=logout;
+window.mostrarPagina=mostrarPagina;
+window.depositarValor=depositarValor;
+window.salvarNome=salvarNome;
+window.abrirCriarGrupo=abrirCriarGrupo;
+window.fecharCriarGrupo=fecharCriarGrupo;
+window.abrirPesquisarGrupos=abrirPesquisarGrupos;
+window.atualizarPlanoGrupo=atualizarPlanoGrupo;
+window.criarGrupo=criarGrupo;
+window.carregarGruposDisponiveis=carregarGruposDisponiveis;
+window.carregarMeusGrupos=carregarMeusGrupos;
+window.entrarGrupo=entrarGrupo;
+window.sairGrupo=sairGrupo;
+window.abrirGrupo=abrirGrupo;
+window.carregarHistorico=carregarHistorico;
+window.filtrarPublicos=filtrarPublicos;
+window.filtrarMeus=filtrarMeus;
+window.abrirAdmin=abrirAdmin;
+window.adminAtualizarStatusGrupo=adminAtualizarStatusGrupo;
+window.updateUI=updateUI;
+</script>
+</body>
+</html>
