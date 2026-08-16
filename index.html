@@ -370,26 +370,65 @@ function atualizarEstado(){
    AUTENTICAÇÃO
    ========================================================= */
 
-async function login(){
-  const email=$("email").value.trim();
-  const password=$("password").value;
+  async function login(){
+
+  const email = $("email").value.trim();
+  const password = $("password").value;
 
   if(!email || !password){
-    $("msg").innerText="Preencha email e senha.";
+    $("msg").innerText = "Preencha email e senha.";
     return;
   }
 
-  $("msg").innerText="A entrar...";
+  $("msg").innerText = "A entrar...";
 
-  const {data,error}=await client.auth.signInWithPassword({email,password});
+  try {
 
-  if(error){
-    $("msg").innerText=error.message;
-    return;
+    const resultado = await Promise.race([
+
+      client.auth.signInWithPassword({
+        email,
+        password
+      }),
+
+      new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error("Tempo limite. Verifique a ligação ao Supabase.")),
+          15000
+        )
+      )
+
+    ]);
+
+    const { data, error } = resultado;
+
+    if(error){
+      console.error("ERRO LOGIN:", error);
+      $("msg").innerText = error.message;
+      return;
+    }
+
+    if(!data || !data.user){
+      $("msg").innerText = "Login não devolveu nenhum utilizador.";
+      return;
+    }
+
+    state.user = data.user;
+
+    $("msg").innerText = "Login realizado. A carregar KixApp...";
+
+    await inicializarUsuario();
+
+  } catch(error){
+
+    console.error("ERRO:", error);
+
+    $("msg").innerText =
+      error.message ||
+      "Não foi possível contactar o Supabase.";
+
   }
 
-  state.user=data.user;
-  await inicializarUsuario();
 }
 
 async function signup(){
