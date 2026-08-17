@@ -7,9 +7,9 @@
   <meta name="description" content="KixApp — gestão de Kixikila e carteira digital">
   <title>KixApp</title>
 
-  <!-- Supabase JS -->
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+ <!-- Supabase JS -->
+<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+  
   <style>
     *{box-sizing:border-box}
     body{margin:0;background:#f4f6f8;color:#111827;font-family:Arial,sans-serif}
@@ -65,11 +65,13 @@
      ========================================================= -->
 <script>
 const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";  
-  ";
-const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-</script>
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
+const client = window.supabase.createClient(
+  SUPABASE_URL,
+  SUPABASE_ANON_KEY
+);
+  
 <!-- LOGIN -->
 <div id="loginBox">
   <div class="login-card">
