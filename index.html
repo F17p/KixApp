@@ -643,6 +643,206 @@ window.login = login;
 
 window.recuperarSenha = recuperarSenha;
 
+  async function mostrarTelaRedefinirSenha() {
+
+  const loginBox = document.getElementById("loginBox");
+  const app = document.getElementById("app");
+
+  if (loginBox) {
+    loginBox.style.display = "none";
+  }
+
+  if (app) {
+    app.style.display = "none";
+  }
+
+  let box = document.getElementById("resetPasswordBox");
+
+  if (!box) {
+
+    box = document.createElement("div");
+
+    box.id = "resetPasswordBox";
+
+    box.style.cssText = `
+      min-height:100vh;
+      box-sizing:border-box;
+      padding:25px;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+      background:#f4f6f8;
+    `;
+
+    box.innerHTML = `
+      <div
+        style="
+          width:100%;
+          max-width:420px;
+          background:white;
+          padding:25px;
+          border-radius:16px;
+          box-shadow:0 8px 30px rgba(0,0,0,.10);
+          box-sizing:border-box;
+        "
+      >
+
+        <h2 style="margin-top:0;">
+          Redefinir palavra-passe
+        </h2>
+
+        <p style="color:#666;">
+          Escolha uma nova palavra-passe para a sua conta.
+        </p>
+
+        <input
+          id="novaSenha"
+          type="password"
+          placeholder="Nova palavra-passe"
+          style="
+            width:100%;
+            padding:12px;
+            box-sizing:border-box;
+            border:1px solid #ddd;
+            border-radius:8px;
+            margin-top:10px;
+          "
+        >
+
+        <input
+          id="confirmarNovaSenha"
+          type="password"
+          placeholder="Confirmar palavra-passe"
+          style="
+            width:100%;
+            padding:12px;
+            box-sizing:border-box;
+            border:1px solid #ddd;
+            border-radius:8px;
+            margin-top:10px;
+          "
+        >
+
+        <button
+          onclick="alterarSenha()"
+          style="
+            width:100%;
+            padding:12px;
+            margin-top:15px;
+            border:none;
+            border-radius:8px;
+            background:#1e3a8a;
+            color:white;
+            font-weight:bold;
+          "
+        >
+          Alterar palavra-passe
+        </button>
+
+        <p
+          id="msgReset"
+          style="margin-top:15px;"
+        ></p>
+
+      </div>
+    `;
+
+    document.body.appendChild(box);
+  }
+
+  box.style.display = "flex";
+  }
+
+  async function alterarSenha() {
+
+  const novaSenha =
+    document.getElementById("novaSenha").value;
+
+  const confirmar =
+    document.getElementById("confirmarNovaSenha").value;
+
+  const mensagem =
+    document.getElementById("msgReset");
+
+  if (!novaSenha || !confirmar) {
+    mensagem.innerText =
+      "Preencha os dois campos.";
+    return;
+  }
+
+  if (novaSenha.length < 6) {
+    mensagem.innerText =
+      "A palavra-passe deve ter pelo menos 6 caracteres.";
+    return;
+  }
+
+  if (novaSenha !== confirmar) {
+    mensagem.innerText =
+      "As palavras-passe não coincidem.";
+    return;
+  }
+
+  mensagem.innerText =
+    "A atualizar palavra-passe...";
+
+  try {
+
+    if (!client) {
+      client = await window.kixappSupabaseReady;
+    }
+
+    const { error } =
+      await client.auth.updateUser({
+        password: novaSenha
+      });
+
+    if (error) {
+
+      console.error(
+        "Erro ao atualizar palavra-passe:",
+        error
+      );
+
+      mensagem.innerText =
+        error.message ||
+        "Não foi possível alterar a palavra-passe.";
+
+      return;
+    }
+
+    mensagem.innerText =
+      "Palavra-passe alterada com sucesso!";
+
+    setTimeout(async () => {
+
+      const resetBox =
+        document.getElementById("resetPasswordBox");
+
+      if (resetBox) {
+        resetBox.remove();
+      }
+
+      await verificarSessao();
+
+    }, 1200);
+
+  } catch (e) {
+
+    console.error(
+      "Erro inesperado:",
+      e
+    );
+
+    mensagem.innerText =
+      e.message ||
+      "Não foi possível alterar a palavra-passe.";
+  }
+}
+
+window.alterarSenha = alterarSenha;
+window.mostrarTelaRedefinirSenha =
+  mostrarTelaRedefinirSenha;
+
   async function signup() {
   const email = $("email").value.trim();
   const password = $("password").value;
@@ -867,25 +1067,82 @@ async function carregarPerfil(){
   return true;
 }
 
-async function verificarSessao(){
+  async function verificarSessao(){
+
   try{
-    const {data,error}=await client.auth.getSession();
+
+    if(!client){
+      client = await window.kixappSupabaseReady;
+    }
+
+    const { data, error } =
+      await client.auth.getSession();
+
     if(error) throw error;
 
+    /*
+     * VERIFICAR SE ESTAMOS NO FLUXO
+     * DE RECUPERAÇÃO DE PALAVRA-PASSE
+     */
+    const parametros =
+      new URLSearchParams(window.location.search);
+
+    const recuperacao =
+      parametros.get("reset_password") === "true";
+
+    /*
+     * NÃO EXISTE SESSÃO
+     */
     if(!data.session){
-      state.user=null;
-      $("loginBox").style.display="block";
-      $("app").style.display="none";
-      $("menu").style.display="none";
+
+      state.user = null;
+
+      $("loginBox").style.display = "block";
+      $("app").style.display = "none";
+      $("menu").style.display = "none";
+
       return;
     }
 
-    state.user=data.session.user;
+    /*
+     * EXISTE SESSÃO DE RECUPERAÇÃO
+     *
+     * NÃO ENTRAR AUTOMATICAMENTE NA APP.
+     * MOSTRAR A TELA PARA ESCOLHER
+     * UMA NOVA PALAVRA-PASSE.
+     */
+    if(recuperacao){
+
+      state.user = data.session.user;
+
+      $("loginBox").style.display = "none";
+      $("app").style.display = "none";
+
+      if($("menu")){
+        $("menu").style.display = "none";
+      }
+
+      await mostrarTelaRedefinirSenha();
+
+      return;
+    }
+
+    /*
+     * LOGIN NORMAL
+     */
+    state.user = data.session.user;
+
     await inicializarUsuario();
+
   }catch(e){
-    console.error("Erro ao recuperar sessão:",e);
+
+    console.error(
+      "Erro ao recuperar sessão:",
+      e
+    );
+
   }
-}
+  }
 
 async function inicializarUsuario(){
   if(!state.user) return;
