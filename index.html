@@ -446,43 +446,169 @@ async function login(){
   }
 }
 
-async function signup(){
-  const email=$("email").value.trim();
-  const password=$("password").value;
+  async function signup() {
+  const email = $("email").value.trim();
+  const password = $("password").value;
 
-  if(!email || !password){
-    $("msg").innerText="Preencha email e senha.";
+  if (!email || !password) {
+    $("msg").innerText = "Preencha email e senha.";
     return;
   }
 
-  if(password.length<6){
-    $("msg").innerText="A senha deve ter pelo menos 6 caracteres.";
+  if (password.length < 6) {
+    $("msg").innerText =
+      "A senha deve ter pelo menos 6 caracteres.";
     return;
   }
 
-  $("msg").innerText="A criar conta...";
+  $("msg").innerText = "A criar conta...";
 
-  try{
-    if(!client) client=await window.kixappSupabaseReady;
+  try {
 
-    const {data,error}=await client.auth.signUp({email,password});
+    if (!client) {
+      client = await window.kixappSupabaseReady;
+    }
 
-    if(error){
-      $("msg").innerText=error.message;
+    const redirectUrl =
+      window.location.origin + window.location.pathname;
+
+    const { data, error } =
+      await client.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+    if (error) {
+      console.error("Erro ao criar conta:", error);
+
+      $("msg").innerText = error.message;
       return;
     }
 
-    if(data.session){
-      state.user=data.user;
+    /*
+     * Se o Supabase permitir sessão imediatamente,
+     * entrar diretamente na aplicação.
+     *
+     * Com "Confirm email" ativado normalmente
+     * data.session será null até o email ser confirmado.
+     */
+    if (data.session && data.user) {
+
+      state.user = data.user;
+
       await inicializarUsuario();
-    }else{
-      $("msg").innerText="Conta criada. Confirme o email se o Supabase pedir.";
+
+      return;
     }
-  }catch(e){
-    console.error("Erro ao criar conta:",e);
-    $("msg").innerText=e.message || "Não foi possível criar a conta.";
+
+    /*
+     * Conta criada, mas aguardando confirmação.
+     */
+    $("msg").innerHTML = `
+      <strong>Conta criada com sucesso!</strong><br><br>
+      Enviámos um link de confirmação para:<br>
+      <strong>${email}</strong><br><br>
+      Abra o email e confirme a sua conta para começar a usar o KixApp.
+      <br><br>
+
+      <button
+        type="button"
+        onclick="reenviarConfirmacao()"
+        style="
+          border:none;
+          background:none;
+          color:#1e3a8a;
+          font-weight:bold;
+          cursor:pointer;
+          padding:0;
+        "
+      >
+        Reenviar email de confirmação
+      </button>
+    `;
+
+  } catch (e) {
+
+    console.error(
+      "Erro inesperado ao criar conta:",
+      e
+    );
+
+    $("msg").innerText =
+      e.message ||
+      "Não foi possível criar a conta.";
+  }
+  }
+
+  async function reenviarConfirmacao() {
+
+  const email = $("email").value.trim();
+
+  if (!email) {
+    $("msg").innerText =
+      "Digite o seu email para reenviar a confirmação.";
+    return;
+  }
+
+  try {
+
+    if (!client) {
+      client = await window.kixappSupabaseReady;
+    }
+
+    $("msg").innerText =
+      "A reenviar email de confirmação...";
+
+    const redirectUrl =
+      window.location.origin + window.location.pathname;
+
+    const { error } =
+      await client.auth.resend({
+        type: "signup",
+        email: email,
+        options: {
+          emailRedirectTo: redirectUrl
+        }
+      });
+
+    if (error) {
+
+      console.error(
+        "Erro ao reenviar confirmação:",
+        error
+      );
+
+      $("msg").innerText =
+        error.message;
+
+      return;
+    }
+
+    $("msg").innerHTML = `
+      <strong>Novo email enviado!</strong><br><br>
+      Verifique a caixa de entrada de:<br>
+      <strong>${email}</strong><br><br>
+      Se não aparecer, verifique também o spam.
+    `;
+
+  } catch (e) {
+
+    console.error(
+      "Erro ao reenviar confirmação:",
+      e
+    );
+
+    $("msg").innerText =
+      e.message ||
+      "Não foi possível reenviar o email.";
   }
 }
+
+window.signup = signup;
+window.reenviarConfirmacao = reenviarConfirmacao;
 
 async function logout(){
   if(!client) return;
