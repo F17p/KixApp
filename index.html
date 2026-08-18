@@ -122,6 +122,22 @@
 
     <button class="btn" onclick="login()">Entrar</button>
     <button class="btn secondary" onclick="signup()">Criar conta</button>
+    <button
+  type="button"
+  onclick="recuperarSenha()"
+  style="
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    border:none;
+    background:none;
+    color:#1e3a8a;
+    font-weight:bold;
+    cursor:pointer;
+  "
+>
+  Esqueci a senha
+    </button>
     <p id="msg" class="muted"></p>
   </div>
 </div>
@@ -558,6 +574,74 @@ function atualizarEstado(){
 }
 
 window.login = login;
+
+  async function recuperarSenha() {
+
+  const email = $("email").value.trim();
+
+  if (!email) {
+    $("msg").innerText =
+      "Digite o seu email para recuperar a senha.";
+    return;
+  }
+
+  $("msg").innerText =
+    "A preparar recuperação de senha...";
+
+  try {
+
+    if (!client) {
+      client = await window.kixappSupabaseReady;
+    }
+
+    const redirectUrl =
+      window.location.origin +
+      window.location.pathname +
+      "?reset_password=true";
+
+    const { error } =
+      await client.auth.resetPasswordForEmail(
+        email,
+        {
+          redirectTo: redirectUrl
+        }
+      );
+
+    if (error) {
+
+      console.error(
+        "Erro ao recuperar senha:",
+        error
+      );
+
+      $("msg").innerText =
+        error.message ||
+        "Não foi possível enviar o email.";
+
+      return;
+    }
+
+    $("msg").innerHTML = `
+      <strong>Email enviado!</strong><br><br>
+      Verifique a caixa de entrada de:<br>
+      <strong>${email}</strong><br><br>
+      Se não encontrar o email, verifique também o spam.
+    `;
+
+  } catch (e) {
+
+    console.error(
+      "Erro inesperado:",
+      e
+    );
+
+    $("msg").innerText =
+      e.message ||
+      "Não foi possível iniciar a recuperação.";
+  }
+}
+
+window.recuperarSenha = recuperarSenha;
 
   async function signup() {
   const email = $("email").value.trim();
