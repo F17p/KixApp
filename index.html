@@ -413,38 +413,151 @@ function atualizarEstado(){
    AUTENTICAÇÃO
    ========================================================= */
 
-async function login(){
-  const email=$("email").value.trim();
-  const password=$("password").value;
+  async function login() {
+  const email = $("email").value.trim();
+  const password = $("password").value;
 
-  if(!email || !password){
-    $("msg").innerText="Preencha email e senha.";
+  if (!email || !password) {
+    $("msg").innerText = "Preencha email e senha.";
     return;
   }
 
-  $("msg").innerText="A entrar...";
+  $("msg").innerText = "A entrar...";
 
-  try{
-    if(!client){
-      $("msg").innerText="A ligar ao servidor...";
-      client=await window.kixappSupabaseReady;
+  try {
+
+    if (!client) {
+      $("msg").innerText = "A ligar ao servidor...";
+      client = await window.kixappSupabaseReady;
     }
 
-    const {error}=await client.auth.signInWithPassword({email,password});
+    const { data, error } =
+      await client.auth.signInWithPassword({
+        email,
+        password
+      });
 
-    if(error){
-      console.error("Erro de login:",error);
-      $("msg").innerText=error.message || "Não foi possível iniciar sessão.";
+    if (error) {
+      console.error("Erro de login:", error);
+
+      const mensagem =
+        (error.message || "").toLowerCase();
+
+      /*
+       * Email ainda não confirmado
+       */
+      if (
+        mensagem.includes("email not confirmed") ||
+        mensagem.includes("email not verified") ||
+        mensagem.includes("not confirmed")
+      ) {
+
+        $("msg").innerHTML = `
+          <strong>Email ainda não confirmado.</strong><br><br>
+          Verifique a sua caixa de entrada para ativar a conta.
+          <br><br>
+
+          <button
+            type="button"
+            onclick="reenviarConfirmacao()"
+            style="
+              border:none;
+              background:none;
+              color:#1e3a8a;
+              font-weight:bold;
+              cursor:pointer;
+              padding:0;
+            "
+          >
+            Reenviar email de confirmação
+          </button>
+        `;
+
+        return;
+      }
+
+      /*
+       * Credenciais incorretas
+       */
+      if (
+        mensagem.includes("invalid login credentials")
+      ) {
+
+        $("msg").innerText =
+          "Email ou senha incorretos.";
+
+        return;
+      }
+
+      /*
+       * Outros erros
+       */
+      $("msg").innerText =
+        error.message ||
+        "Não foi possível iniciar sessão.";
+
       return;
     }
 
-    $("msg").innerText="Login realizado. A carregar KixApp...";
+    /*
+     * Login realizado
+     */
+    if (data && data.user) {
 
-  }catch(e){
-    console.error("Erro de login:",e);
-    $("msg").innerText=e.message || "Não foi possível contactar o Supabase.";
+      state.user = data.user;
+
+      $("msg").innerText =
+        "Login realizado. A carregar KixApp...";
+
+      /*
+       * O listener de sessão normalmente
+       * continuará o processo de inicialização.
+       *
+       * Se a aplicação ainda não estiver visível,
+       * verificamos a sessão manualmente.
+       */
+      setTimeout(async () => {
+
+        try {
+
+          if (
+            document.getElementById("app") &&
+            document.getElementById("app").style.display === "none"
+          ) {
+            await verificarSessao();
+          }
+
+        } catch (e) {
+
+          console.error(
+            "Erro ao carregar aplicação:",
+            e
+          );
+
+        }
+
+      }, 300);
+
+      return;
+    }
+
+    $("msg").innerText =
+      "Não foi possível iniciar a sessão.";
+
+  } catch (e) {
+
+    console.error(
+      "Erro inesperado de login:",
+      e
+    );
+
+    $("msg").innerText =
+      e.message ||
+      "Não foi possível contactar o Supabase.";
   }
 }
+
+window.login = login;
 
   async function signup() {
   const email = $("email").value.trim();
