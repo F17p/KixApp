@@ -7,9 +7,55 @@
   <meta name="description" content="KixApp — gestão de Kixikila e carteira digital">
   <title>KixApp</title>
 
- <!-- Supabase JS -->
-<script src="https://unpkg.com/@supabase/supabase-js@2"></script>
-  
+  <!-- Supabase JS: carregamento robusto com fallback -->
+  <script>
+    window.KIXAPP_SUPABASE_URL = window.KIXAPP_SUPABASE_URL || "https://sksrqwtzwibrrijfpqcy.supabase.co";
+    window.KIXAPP_SUPABASE_ANON_KEY = window.KIXAPP_SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
+
+    window.kixappSupabaseReady = new Promise(function(resolve, reject){
+      var fontes = [
+        "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2",
+        "https://unpkg.com/@supabase/supabase-js@2"
+      ];
+      var indice = 0;
+
+      function carregar(){
+        if(indice >= fontes.length){
+          reject(new Error("Não foi possível carregar a biblioteca do Supabase. Verifique a ligação à internet."));
+          return;
+        }
+
+        var script = document.createElement("script");
+        script.src = fontes[indice++];
+        script.async = false;
+
+        script.onload = function(){
+          if(window.supabase && typeof window.supabase.createClient === "function"){
+            try{
+              window.kixappClient = window.supabase.createClient(
+                window.KIXAPP_SUPABASE_URL,
+                window.KIXAPP_SUPABASE_ANON_KEY
+              );
+              resolve(window.kixappClient);
+            }catch(e){
+              reject(e);
+            }
+          }else{
+            carregar();
+          }
+        };
+
+        script.onerror = function(){
+          carregar();
+        };
+
+        document.head.appendChild(script);
+      }
+
+      carregar();
+    });
+  </script>
+
   <style>
     *{box-sizing:border-box}
     body{margin:0;background:#f4f6f8;color:#111827;font-family:Arial,sans-serif}
@@ -63,15 +109,7 @@
      IMPORTANTE: usa aqui os MESMOS dados Supabase do teu index antigo.
      Não inventámos um projeto novo.
      ========================================================= -->
-<script>
-const SUPABASE_URL = "https://sksrqwtzwibrrijfpqcy.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNrc3Jxd3R6d2licnJpamZwcWN5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODE1NjIwNzYsImV4cCI6MjA5NzEzODA3Nn0.UO6_GSuLxFaXTAuI8jdby2I1ZncxZVguFqMUcW8NOpE";
 
-const client = window.supabase.createClient(
-  SUPABASE_URL,
-  SUPABASE_ANON_KEY
-);
-  
 <!-- LOGIN -->
 <div id="loginBox">
   <div class="login-card">
@@ -265,6 +303,9 @@ const client = window.supabase.createClient(
    KIXAPP — ESTADO ÚNICO
    ========================================================= */
 
+let client = null;
+let kixappInicializado = false;
+
 const state = {
   user: null,
   profile: null,
@@ -372,65 +413,37 @@ function atualizarEstado(){
    AUTENTICAÇÃO
    ========================================================= */
 
-  async function login(){
-
-  const email = $("email").value.trim();
-  const password = $("password").value;
+async function login(){
+  const email=$("email").value.trim();
+  const password=$("password").value;
 
   if(!email || !password){
-    $("msg").innerText = "Preencha email e senha.";
+    $("msg").innerText="Preencha email e senha.";
     return;
   }
 
-  $("msg").innerText = "A entrar...";
+  $("msg").innerText="A entrar...";
 
-  try {
+  try{
+    if(!client){
+      $("msg").innerText="A ligar ao servidor...";
+      client=await window.kixappSupabaseReady;
+    }
 
-    const resultado = await Promise.race([
-
-      client.auth.signInWithPassword({
-        email,
-        password
-      }),
-
-      new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error("Tempo limite. Verifique a ligação ao Supabase.")),
-          15000
-        )
-      )
-
-    ]);
-
-    const { data, error } = resultado;
+    const {error}=await client.auth.signInWithPassword({email,password});
 
     if(error){
-      console.error("ERRO LOGIN:", error);
-      $("msg").innerText = error.message;
+      console.error("Erro de login:",error);
+      $("msg").innerText=error.message || "Não foi possível iniciar sessão.";
       return;
     }
 
-    if(!data || !data.user){
-      $("msg").innerText = "Login não devolveu nenhum utilizador.";
-      return;
-    }
+    $("msg").innerText="Login realizado. A carregar KixApp...";
 
-    state.user = data.user;
-
-    $("msg").innerText = "Login realizado. A carregar KixApp...";
-
-    await inicializarUsuario();
-
-  } catch(error){
-
-    console.error("ERRO:", error);
-
-    $("msg").innerText =
-      error.message ||
-      "Não foi possível contactar o Supabase.";
-
+  }catch(e){
+    console.error("Erro de login:",e);
+    $("msg").innerText=e.message || "Não foi possível contactar o Supabase.";
   }
-
 }
 
 async function signup(){
@@ -449,22 +462,30 @@ async function signup(){
 
   $("msg").innerText="A criar conta...";
 
-  const {data,error}=await client.auth.signUp({email,password});
+  try{
+    if(!client) client=await window.kixappSupabaseReady;
 
-  if(error){
-    $("msg").innerText=error.message;
-    return;
-  }
+    const {data,error}=await client.auth.signUp({email,password});
 
-  if(data.session){
-    state.user=data.user;
-    await inicializarUsuario();
-  }else{
-    $("msg").innerText="Conta criada. Confirme o email se o Supabase pedir.";
+    if(error){
+      $("msg").innerText=error.message;
+      return;
+    }
+
+    if(data.session){
+      state.user=data.user;
+      await inicializarUsuario();
+    }else{
+      $("msg").innerText="Conta criada. Confirme o email se o Supabase pedir.";
+    }
+  }catch(e){
+    console.error("Erro ao criar conta:",e);
+    $("msg").innerText=e.message || "Não foi possível criar a conta.";
   }
 }
 
 async function logout(){
+  if(!client) return;
   await client.auth.signOut();
   state.user=null;
   state.profile=null;
@@ -1297,33 +1318,47 @@ document.addEventListener("visibilitychange",async()=>{
 });
 
 /* =========================================================
-   AUTH LISTENER
+   AUTH LISTENER + INICIALIZAÇÃO SEGURA
    ========================================================= */
 
-client.auth.onAuthStateChange(async(event,session)=>{
-  if(event==="SIGNED_OUT"){
-    state.user=null;
-    state.profile=null;
-    state.isAdmin=false;
-    $("loginBox").style.display="block";
-    $("app").style.display="none";
-    $("menu").style.display="none";
+async function iniciarKixApp(){
+  if(kixappInicializado) return;
+  kixappInicializado=true;
+
+  try{
+    client = await window.kixappSupabaseReady;
+
+    if(!client || !client.auth){
+      throw new Error("Cliente Supabase não foi inicializado.");
+    }
+
+    client.auth.onAuthStateChange(async(event,session)=>{
+      if(event==="SIGNED_OUT"){
+        state.user=null;
+        state.profile=null;
+        state.isAdmin=false;
+        state.adminRole=null;
+        $("loginBox").style.display="block";
+        $("app").style.display="none";
+        $("menu").style.display="none";
+      }
+
+      if(event==="SIGNED_IN" && session?.user){
+        state.user=session.user;
+        await inicializarUsuario();
+      }
+    });
+
+    await verificarSessao();
+    iniciarAtualizacaoAutomatica();
+
+  }catch(e){
+    console.error("KixApp/Supabase:",e);
+    $("msg").innerText=e.message || "Não foi possível iniciar o KixApp.";
   }
+}
 
-  if(event==="SIGNED_IN" && session?.user){
-    state.user=session.user;
-    await inicializarUsuario();
-  }
-});
-
-/* =========================================================
-   INICIALIZAÇÃO
-   ========================================================= */
-
-window.addEventListener("DOMContentLoaded",async()=>{
-  await verificarSessao();
-  iniciarAtualizacaoAutomatica();
-});
+window.addEventListener("DOMContentLoaded", iniciarKixApp);
 
 /* =========================================================
    FUNÇÕES DISPONÍVEIS AO HTML
