@@ -338,6 +338,123 @@ const limitesPlano = {
   Premium: Infinity
 };
 
+  function obterDuracaoPlano(plano) {
+
+  if (plano === "Pro") {
+    return 3;
+  }
+
+  if (plano === "Premium") {
+    return 6;
+  }
+
+  return null;
+  }
+
+  function calcularDataExpiracao(plano, dataInicio = new Date()) {
+
+  const meses = obterDuracaoPlano(plano);
+
+  if (!meses) {
+    return null;
+  }
+
+  const data = new Date(dataInicio);
+
+  data.setMonth(data.getMonth() + meses);
+
+  return data.toISOString();
+  }
+
+  async function verificarPlano() {
+
+  if (!state.user || !state.profile) {
+    return;
+  }
+
+  const plano =
+    state.profile.plano || "Basic";
+
+  /*
+   * BASIC É GRATUITO
+   */
+  if (plano === "Basic") {
+
+    state.plano = "Basic";
+
+    return;
+  }
+
+  const agora = new Date();
+
+  const expiracao =
+    state.profile.plano_expira
+      ? new Date(state.profile.plano_expira)
+      : null;
+
+  /*
+   * PLANO SEM DATA DE EXPIRAÇÃO
+   *
+   * Por segurança, não vamos alterar
+   * automaticamente o plano.
+   */
+  if (!expiracao) {
+
+    state.plano = plano;
+
+    return;
+  }
+
+  /*
+   * PLANO AINDA VÁLIDO
+   */
+  if (expiracao > agora) {
+
+    state.plano = plano;
+
+    return;
+  }
+
+  /*
+   * PLANO EXPIRADO
+   */
+  console.log(
+    "Plano expirado:",
+    plano
+  );
+
+  const { error } =
+    await client
+      .from("profiles")
+      .update({
+        plano: "Basic",
+        plano_inicio: null,
+        plano_expira: null
+      })
+      .eq("id", state.user.id);
+
+  if (error) {
+
+    console.error(
+      "Erro ao atualizar plano expirado:",
+      error
+    );
+
+    return;
+  }
+
+  state.profile.plano = "Basic";
+  state.profile.plano_inicio = null;
+  state.profile.plano_expira = null;
+
+  state.plano = "Basic";
+
+  mostrarNotificacao(
+    "Plano expirado",
+    "O seu plano voltou para Basic. Escolha um novo plano para continuar."
+  );
+         }
+
 /* =========================================================
    HELPERS
    ========================================================= */
@@ -1145,9 +1262,17 @@ async function carregarPerfil(){
   }
 
 async function inicializarUsuario(){
+
   if(!state.user) return;
 
   await carregarPerfil();
+
+  /*
+   * Verificar se o plano atual
+   * ainda está dentro da validade.
+   */
+  await verificarPlano();
+
   await verificarAdministrador();
 
   $("loginBox").style.display="none";
@@ -1155,8 +1280,11 @@ async function inicializarUsuario(){
   $("menu").style.display="flex";
 
   updateUI();
+
   await carregarDadosApp();
+
   atualizarAcessoAdmin();
+
   mostrarPagina("inicio");
 }
 
