@@ -726,21 +726,80 @@ function mostrarPagina(pagina){
 }
 
 function updateUI(){
+
   if(!state.profile || !state.user) return;
 
-  const nome=state.profile.nome || state.user.email || "Utilizador";
-  $("userEmail").innerText="👤 "+nome;
-  $("perfilNome").innerText=state.profile.nome || "Sem nome";
-  $("inputNome").value=state.profile.nome || "";
-  $("userSaldo").innerText=formatarKz(state.profile.saldo);
-  $("planoAtual").innerText=state.plano;
-  $("perfilPlano").innerText=state.plano;
-  $("gruposUsados").innerText=state.gruposUsados;
-  $("gruposLimite").innerText=limitesPlano[state.plano]===Infinity?"∞":limitesPlano[state.plano];
-  $("perfilTelefone").innerText=state.profile.telefone || "Não informado";
-  $("planoStatus").innerText="Status: "+(state.profile.status || "Ativo");
-}
+  const nome =
+    state.profile.nome ||
+    state.user.email ||
+    "Utilizador";
 
+  $("userEmail").innerText =
+    "👤 " + nome;
+
+  $("perfilNome").innerText =
+    state.profile.nome || "Sem nome";
+
+  $("inputNome").value =
+    state.profile.nome || "";
+
+  $("userSaldo").innerText =
+    formatarKz(state.profile.saldo);
+
+  $("planoAtual").innerText =
+    state.plano;
+
+  $("perfilPlano").innerText =
+    state.plano;
+
+  $("gruposUsados").innerText =
+    state.gruposUsados;
+
+  $("gruposLimite").innerText =
+    limitesPlano[state.plano] === Infinity
+      ? "∞"
+      : limitesPlano[state.plano];
+
+  $("perfilTelefone").innerText =
+    state.profile.telefone ||
+    "Não informado";
+
+  /*
+   * STATUS DO PLANO
+   */
+
+  let statusTexto =
+    state.profile.status || "Ativo";
+
+  if(
+    state.plano !== "Basic" &&
+    state.profile.plano_expira
+  ){
+
+    const expiracao =
+      new Date(state.profile.plano_expira);
+
+    if(expiracao > new Date()){
+
+      statusTexto =
+        "Ativo até " +
+        expiracao.toLocaleDateString("pt-AO");
+
+    }
+
+  }
+
+  if(state.plano === "Basic"){
+
+    statusTexto =
+      "Ativo — plano gratuito";
+
+  }
+
+  $("planoStatus").innerText =
+    "Status: " + statusTexto;
+}
+  
 function atualizarEstado(){
   state.plano=state.profile?.plano || "Basic";
   state.gruposUsados=numero(state.profile?.grupos_usados);
