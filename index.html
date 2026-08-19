@@ -260,22 +260,227 @@
   </section>
 
   <!-- PERFIL -->
-  <section id="paginaPerfil" class="page">
-    <div class="card">
-      <h3>Perfil</h3>
-      <p id="perfilNome">Sem nome</p>
-      <input class="input" id="inputNome" placeholder="Seu nome">
-      <button class="btn" onclick="salvarNome()">Salvar nome</button>
+<section id="paginaPerfil" class="page">
 
-      <hr style="border:0;border-top:1px solid #eee;margin:18px 0">
+  <!-- DADOS DO PERFIL -->
+  <div class="card">
 
-      <p>Plano: <b id="perfilPlano">Basic</b></p>
-      <p>Telefone: <span id="perfilTelefone">Não informado</span></p>
+    <h3>Perfil</h3>
 
-      <button class="btn danger" onclick="logout()">Terminar sessão</button>
+    <p id="perfilNome">Sem nome</p>
+
+    <input
+      class="input"
+      id="inputNome"
+      placeholder="Seu nome"
+    >
+
+    <button
+      class="btn"
+      onclick="salvarNome()"
+    >
+      Salvar nome
+    </button>
+
+    <hr style="
+      border:0;
+      border-top:1px solid #eee;
+      margin:18px 0
+    ">
+
+    <p>
+      Plano:
+      <b id="perfilPlano">Basic</b>
+    </p>
+
+    <p>
+      Telefone:
+      <span id="perfilTelefone">
+        Não informado
+      </span>
+    </p>
+
+  </div>
+
+
+  <!-- PLANO ATUAL -->
+  <div class="card">
+
+    <h3>Plano atual</h3>
+
+    <div class="grid2">
+
+      <div class="stat">
+
+        <div class="muted">
+          Plano
+        </div>
+
+        <b id="planoAtual">
+          Basic
+        </b>
+
+      </div>
+
+
+      <div class="stat">
+
+        <div class="muted">
+          Grupos usados
+        </div>
+
+        <b>
+
+          <span id="gruposUsados">
+            0
+          </span>
+
+          /
+
+          <span id="gruposLimite">
+            3
+          </span>
+
+        </b>
+
+      </div>
+
     </div>
-  </section>
 
+    <p
+      id="planoStatus"
+      class="muted"
+    >
+      Status: Ativo
+    </p>
+
+  </div>
+
+
+  <!-- ESCOLHER PLANO -->
+  <div class="card">
+
+    <h3>
+      Melhorar plano
+    </h3>
+
+    <p class="muted">
+      Escolha o plano ideal para a sua Kixikila.
+    </p>
+
+
+    <!-- BASIC -->
+    <div
+      class="grupo-card"
+      style="
+        margin-top:15px;
+      "
+    >
+
+      <h3>
+        Basic
+      </h3>
+
+      <p>
+        Gratuito
+      </p>
+
+      <p>
+        Até <b>3 grupos</b>
+      </p>
+
+      <button
+        class="btn"
+        disabled
+        style="
+          opacity:.6;
+          cursor:not-allowed;
+        "
+      >
+        Plano atual
+      </button>
+
+    </div>
+
+
+    <!-- PRO -->
+    <div
+      class="grupo-card"
+      style="
+        margin-top:15px;
+      "
+    >
+
+      <h3>
+        Pro
+      </h3>
+
+      <p>
+        Até <b>10 grupos</b>
+      </p>
+
+      <p>
+        Renovação a cada
+        <b>3 meses</b>
+      </p>
+
+      <button
+        class="btn"
+        onclick="escolherPlano('Pro')"
+      >
+        Escolher Pro
+      </button>
+
+    </div>
+
+
+    <!-- PREMIUM -->
+    <div
+      class="grupo-card"
+      style="
+        margin-top:15px;
+      "
+    >
+
+      <h3>
+        Premium
+      </h3>
+
+      <p>
+        <b>Grupos ilimitados</b>
+      </p>
+
+      <p>
+        Renovação a cada
+        <b>6 meses</b>
+      </p>
+
+      <button
+        class="btn"
+        onclick="escolherPlano('Premium')"
+      >
+        Escolher Premium
+      </button>
+
+    </div>
+
+  </div>
+
+
+  <!-- TERMINAR SESSÃO -->
+  <div class="card">
+
+    <button
+      class="btn danger"
+      onclick="logout()"
+    >
+      Terminar sessão
+    </button>
+
+  </div>
+
+</section>
+  
   <!-- ADMIN -->
   <section id="paginaAdmin" class="page">
     <div class="card">
