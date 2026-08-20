@@ -827,6 +827,61 @@ function updateUI(){
 
   return data;
   }
+
+  async function escolherPlano(plano){
+
+  try{
+
+    if(plano !== "Pro" && plano !== "Premium"){
+      throw new Error("Plano inválido.");
+    }
+
+    const valor =
+      plano === "Pro"
+        ? 3500
+        : 7500;
+
+    const confirmar =
+      confirm(
+        "Plano " + plano +
+        "\nValor: " + formatarKz(valor) +
+        "\n\nDeseja continuar?"
+      );
+
+    if(!confirmar){
+      return;
+    }
+
+    const pagamento =
+      await criarPagamentoKixApp(plano);
+
+    console.log(
+      "Pagamento criado com sucesso:",
+      pagamento
+    );
+
+    alert(
+      "Pedido de pagamento criado!\n\n" +
+      "Plano: " + plano +
+      "\nValor: " + formatarKz(valor) +
+      "\n\nStatus: Pendente"
+    );
+
+  }catch(error){
+
+    console.error(
+      "Erro ao escolher plano:",
+      error
+    );
+
+    alert(
+      "Não foi possível criar o pagamento.\n\n" +
+      (error.message || "Erro desconhecido.")
+    );
+
+  }
+
+  }
   
 function atualizarEstado(){
   state.plano=state.profile?.plano || "Basic";
