@@ -799,6 +799,34 @@ function updateUI(){
   $("planoStatus").innerText =
     "Status: " + statusTexto;
 }
+
+  async function criarPagamentoKixApp(plano){
+
+  if(!window.kixappClient){
+    throw new Error("Supabase não inicializado.");
+  }
+
+  if(plano !== "Pro" && plano !== "Premium"){
+    throw new Error("Plano inválido.");
+  }
+
+  const {
+    data,
+    error
+  } = await window.kixappClient.rpc(
+    "criar_pagamento",
+    {
+      p_plano: plano
+    }
+  );
+
+  if(error){
+    console.error("Erro ao criar pagamento:", error);
+    throw error;
+  }
+
+  return data;
+  }
   
 function atualizarEstado(){
   state.plano=state.profile?.plano || "Basic";
