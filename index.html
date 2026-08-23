@@ -2125,40 +2125,124 @@ async function abrirGrupo(groupId){
    HISTÓRICO
    ========================================================= */
 
-async function carregarHistorico(){
-  const container=$("historico");
+  async function carregarHistorico(){
+
+  const container = $("historico");
+
   if(!container || !state.user) return;
 
-  container.innerHTML="A carregar histórico...";
+  container.innerHTML = "A carregar histórico...";
 
-  const {data,error}=await client
-    .from("transactions")
-    .select("*")
-    .eq("user_id",state.user.id)
-    .order("created_at",{ascending:false});
+  const { data, error } =
+    await client.rpc("obter_historico_pagamentos");
 
   if(error){
-    console.error(error);
-    container.innerHTML="Não foi possível carregar o histórico.";
+
+    console.error("Erro ao carregar histórico:", error);
+
+    container.innerHTML =
+      "Não foi possível carregar o histórico.";
+
     return;
   }
 
   if(!data?.length){
-    container.innerHTML='<div class="empty">Nenhuma transação.</div>';
+
+    container.innerHTML =
+      '<div class="empty">Nenhum pagamento encontrado.</div>';
+
     return;
   }
 
-  container.innerHTML=data.map(t=>{
-    const entrada=["deposito","entrada","recebimento"].includes(String(t.tipo||"").toLowerCase());
-    const sinal=entrada?"+":"";
+  container.innerHTML = data.map(p => {
+
+    const plano =
+      p.plano || "Plano";
+
+    const status =
+      String(p.status || "").toLowerCase();
+
+    let statusTexto = "Pendente";
+
+    if(status === "paid"){
+      statusTexto = "Pago";
+    }
+
+    if(status === "cancelled"){
+      statusTexto = "Cancelado";
+    }
+
+    if(status === "failed"){
+      statusTexto = "Falhou";
+    }
+
+    const dataCriacao =
+      p.created_at
+        ? new Date(p.created_at)
+            .toLocaleString("pt-AO")
+        : "";
+
+    const dataPagamento =
+      p.paid_at
+        ? new Date(p.paid_at)
+            .toLocaleString("pt-AO")
+        : "";
+
+    const dataExpiracao =
+      p.expires_at
+        ? new Date(p.expires_at)
+            .toLocaleDateString("pt-AO")
+        : "";
+
     return `
       <div class="grupo-card">
-        <b>${esc(t.descricao||t.tipo||"Transação")}</b>
-        <div>${sinal}${formatarKz(t.valor)}</div>
-        <small class="muted">${t.created_at?new Date(t.created_at).toLocaleString("pt-AO"):""}</small>
-      </div>`;
+
+        <h3>
+          Plano ${esc(plano)}
+        </h3>
+
+        <div>
+          <b>
+            ${formatarKz(p.valor)}
+          </b>
+        </div>
+
+        <div class="muted">
+          Estado: ${esc(statusTexto)}
+        </div>
+
+        <small class="muted">
+          Criado em:
+          ${esc(dataCriacao)}
+        </small>
+
+        ${
+          dataPagamento
+            ? `
+              <small class="muted">
+                Pago em:
+                ${esc(dataPagamento)}
+              </small>
+            `
+            : ""
+        }
+
+        ${
+          dataExpiracao
+            ? `
+              <small class="muted">
+                Expira em:
+                ${esc(dataExpiracao)}
+              </small>
+            `
+            : ""
+        }
+
+      </div>
+    `;
+
   }).join("");
-}
+      }
 
 /* =========================================================
    DADOS DA APP
