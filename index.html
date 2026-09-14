@@ -860,12 +860,18 @@ function updateUI(){
       pagamento
     );
 
-    alert(
-      "Pedido de pagamento criado!\n\n" +
-      "Plano: " + plano +
-      "\nValor: " + formatarKz(valor) +
-      "\n\nStatus: Pendente"
-    );
+   alert(
+  "Pedido criado!\n\n" +
+  "Plano: " + plano +
+  "\nValor: " + formatarKz(valor) +
+  "\nStatus: Pendente" +
+  "\n\nID: " +
+  (
+    pagamento?.id ||
+    pagamento?.payment_id ||
+    "ID não retornado"
+  )
+);
 
   }catch(error){
 
