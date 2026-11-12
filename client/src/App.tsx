@@ -8,7 +8,7 @@ import DashboardView, {
 import { supabase } from "./lib/supabase";
 
 const profileColumns =
-  "id,email,nome,saldo,plano,grupos_usados,telefone,plano_expira,status";
+  "id,email,nome,saldo,plano,grupos_usados,telefone,plano_expira";
 
 interface ProfileRecord {
   id: string;
@@ -19,7 +19,6 @@ interface ProfileRecord {
   grupos_usados: number | null;
   telefone: string | null;
   plano_expira: string | null;
-  status: string | null;
 }
 
 function parseOptionalNumber(value: number | string | null): number | null {
@@ -39,7 +38,6 @@ function normalizeProfile(record: ProfileRecord): Profile {
     grupos_usados: parseOptionalNumber(record.grupos_usados),
     telefone: record.telefone,
     plano_expira: record.plano_expira,
-    status: record.status,
   };
 }
 

@@ -15,7 +15,6 @@ export interface Profile {
   grupos_usados: number | null;
   telefone: string | null;
   plano_expira: string | null;
-  status: string | null;
 }
 
 export interface ProfileLoadError {
@@ -299,10 +298,6 @@ export default function DashboardView({
                     <dt>Telefone</dt>
                     <dd>{profile.telefone || "Não indicado"}</dd>
                   </div>
-                  <div className="kix-detail">
-                    <dt>Estado da conta</dt>
-                    <dd>{profile.status || "Não indicado"}</dd>
-                  </div>
                 </dl>
               </section>
 
@@ -316,7 +311,6 @@ export default function DashboardView({
                     {profile.plano?.trim() || "Não indicado"}
                   </span>
                 </div>
-                <div className="kix-plan-status">{profile.status || "Estado não indicado"}</div>
                 <div className="kix-plan-expiry">
                   Data de validade: <strong>{expiration || "Não indicada"}</strong>
                 </div>
