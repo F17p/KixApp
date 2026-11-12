@@ -10,19 +10,27 @@ export interface Profile {
   id: string;
   email: string;
   nome: string | null;
-  saldo: number;
-  plano: string;
-  grupos_usados: number;
+  saldo: number | null;
+  plano: string | null;
+  grupos_usados: number | null;
   telefone: string | null;
   plano_expira: string | null;
   status: string | null;
+}
+
+export interface ProfileLoadError {
+  message: string;
+  code?: string;
+  details?: string;
+  hint?: string;
 }
 
 export interface DashboardViewProps {
   user: AuthUser;
   profile: Profile | null;
   loading?: boolean;
-  error?: string | null;
+  error?: ProfileLoadError | null;
+  profileNotFound?: boolean;
   successMessage?: string | null;
   onSignOut: () => Promise<void>;
   onRetry?: () => void;
@@ -95,6 +103,7 @@ export default function DashboardView({
   profile,
   loading = false,
   error,
+  profileNotFound = false,
   successMessage,
   onSignOut,
   onRetry,
@@ -122,9 +131,49 @@ export default function DashboardView({
         <section className="kix-dashboard-state" role="alert">
           <div className="kix-error-state-icon"><ErrorMark /></div>
           <h1>Não foi possível carregar a conta.</h1>
-          <p>{error}</p>
+          <p>{error.message}</p>
+          {(error.code || error.details || error.hint) && (
+            <dl className="kix-profile-error-details" aria-label="Detalhes do erro">
+              {error.code && (
+                <div>
+                  <dt>Código Supabase</dt>
+                  <dd>{error.code}</dd>
+                </div>
+              )}
+              {error.details && (
+                <div>
+                  <dt>Detalhes</dt>
+                  <dd>{error.details}</dd>
+                </div>
+              )}
+              {error.hint && (
+                <div>
+                  <dt>Sugestão</dt>
+                  <dd>{error.hint}</dd>
+                </div>
+              )}
+            </dl>
+          )}
           {onRetry && (
             <button className="kix-button" type="button" onClick={onRetry}>Tentar novamente</button>
+          )}
+        </section>
+      </main>
+    );
+  }
+
+  if (profileNotFound) {
+    return (
+      <main className="kix-ui">
+        <section className="kix-dashboard-state" role="status">
+          <div className="kix-empty-profile">
+            <h1>Perfil não encontrado</h1>
+            <p>Esta conta não tem um perfil associado. Nenhum perfil foi criado automaticamente.</p>
+          </div>
+          {onRetry && (
+            <button className="kix-button" type="button" onClick={onRetry}>
+              Verificar novamente
+            </button>
           )}
         </section>
       </main>
@@ -134,6 +183,10 @@ export default function DashboardView({
   const displayName = profile?.nome?.trim() || user.email;
   const firstName = profile?.nome?.trim().split(/\s+/)[0];
   const expiration = formatDate(profile?.plano_expira ?? null);
+  const groupCountLabel =
+    profile?.grupos_usados === null || profile?.grupos_usados === undefined
+      ? "Não indicado"
+      : `${profile.grupos_usados} ${profile.grupos_usados === 1 ? "grupo" : "grupos"} registados`;
   const greeting = firstName ? `Olá, ${firstName}.` : "Olá.";
 
   return (
@@ -187,10 +240,9 @@ export default function DashboardView({
         {!profile ? (
           <section className="kix-dashboard-state" aria-live="polite">
             <div className="kix-empty-profile">
-              <h1>Perfil ainda indisponível</h1>
-              <p>Não foi possível encontrar os dados do seu perfil. Tente carregar novamente.</p>
+              <h1>A verificar o perfil</h1>
+              <p>Os dados da sua conta ainda não estão disponíveis.</p>
             </div>
-            {onRetry && <button className="kix-button" type="button" onClick={onRetry}>Tentar novamente</button>}
           </section>
         ) : (
           <>
@@ -199,7 +251,14 @@ export default function DashboardView({
                 <div>
                   <span className="kix-balance-label" id="kix-balance-title">Saldo disponível</span>
                   <strong className="kix-balance-value">
-                    {formatKwanza(profile.saldo)} <span className="kix-balance-currency">Kz</span>
+                    {profile.saldo === null ? (
+                      "Não indicado"
+                    ) : (
+                      <>
+                        {formatKwanza(profile.saldo)}{" "}
+                        <span className="kix-balance-currency">Kz</span>
+                      </>
+                    )}
                   </strong>
                 </div>
                 <span className="kix-balance-foot">Saldo registado no seu perfil</span>
@@ -209,10 +268,12 @@ export default function DashboardView({
                 <div>
                   <h2 id="kix-groups-title">A sua participação</h2>
                   <p className="kix-overview-caption">Grupos usados na sua conta KixApp.</p>
-                  <div className="kix-overview-number">{profile.grupos_usados}</div>
+                  <div className="kix-overview-number">
+                    {profile.grupos_usados ?? "—"}
+                  </div>
                 </div>
                 <div className="kix-overview-foot">
-                  <strong>{profile.grupos_usados}</strong> {profile.grupos_usados === 1 ? "grupo" : "grupos"} registados
+                  <strong>{groupCountLabel}</strong>
                 </div>
               </section>
             </div>
@@ -251,7 +312,9 @@ export default function DashboardView({
                     <h2 id="kix-plan-title">O seu plano</h2>
                     <p>Detalhes do plano associado.</p>
                   </div>
-                  <span className="kix-plan-badge">{profile.plano}</span>
+                  <span className="kix-plan-badge">
+                    {profile.plano?.trim() || "Não indicado"}
+                  </span>
                 </div>
                 <div className="kix-plan-status">{profile.status || "Estado não indicado"}</div>
                 <div className="kix-plan-expiry">

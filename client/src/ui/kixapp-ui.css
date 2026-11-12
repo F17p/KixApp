@@ -883,6 +883,32 @@ body {
   line-height: 1.65;
 }
 
+.kix-profile-error-details {
+  display: grid;
+  width: min(100%, 560px);
+  gap: 12px;
+  margin: 0 0 20px;
+  padding: 14px 16px;
+  border: 1px solid hsl(var(--kix-line));
+  border-radius: 12px;
+  background: hsl(var(--kix-paper));
+  text-align: left;
+}
+
+.kix-profile-error-details dt {
+  color: hsl(var(--kix-muted));
+  font-size: .72rem;
+  font-weight: 600;
+}
+
+.kix-profile-error-details dd {
+  overflow-wrap: anywhere;
+  margin: 4px 0 0;
+  font-size: .84rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
 .kix-empty-profile {
   color: hsl(var(--kix-muted));
   font-size: .9rem;

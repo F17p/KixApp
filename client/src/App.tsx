@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { User } from "@supabase/supabase-js";
 import AuthScreen, { type AuthScreenState } from "./ui/AuthScreen";
-import DashboardView, { type Profile } from "./ui/DashboardView";
+import DashboardView, {
+  type Profile,
+  type ProfileLoadError,
+} from "./ui/DashboardView";
 import { supabase } from "./lib/supabase";
 
 const profileColumns =
@@ -19,24 +22,115 @@ interface ProfileRecord {
   status: string | null;
 }
 
+function parseOptionalNumber(value: number | string | null): number | null {
+  if (value === null || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
 function normalizeProfile(record: ProfileRecord): Profile {
-  const balance = Number(record.saldo ?? 0);
-  const groupCount = Number(record.grupos_usados ?? 0);
 
   return {
     id: record.id,
     email: record.email ?? "",
     nome: record.nome,
-    saldo: Number.isFinite(balance) ? balance : 0,
-    plano: record.plano || "Basic",
-    grupos_usados: Number.isFinite(groupCount) ? groupCount : 0,
+    saldo: parseOptionalNumber(record.saldo),
+    plano: record.plano,
+    grupos_usados: parseOptionalNumber(record.grupos_usados),
     telefone: record.telefone,
     plano_expira: record.plano_expira,
     status: record.status,
   };
 }
 
-async function loadOrCreateProfile(user: User): Promise<Profile> {
+function sanitizeDiagnosticText(value: unknown): string | undefined {
+  if (typeof value !== "string" || !value.trim()) return undefined;
+
+  return value
+    .trim()
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]")
+    .replace(
+      /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
+      "[token redacted]",
+    )
+    .replace(
+      /\b((?:access[_ -]?token|refresh[_ -]?token|password|senha|secret|api[_ -]?key|authorization|service[_ -]?role[_ -]?key)\s*[:=]\s*["']?)[^,\s;"']+/gi,
+      "$1[redacted]",
+    )
+    .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, "[email redacted]")
+    .replace(
+      /\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\b/gi,
+      "[id redacted]",
+    )
+    .replace(/\b\d{9,15}\b/g, "[number redacted]")
+    .replace(
+      /\b\d[\d.,]*\s*(?:Kz|AOA)\b|\b(?:Kz|AOA)\s*[\d.,]+/gi,
+      "[financial value redacted]",
+    )
+    .slice(0, 800);
+}
+
+function readProfileLoadError(cause: unknown): ProfileLoadError {
+  const candidates: Partial<ProfileLoadError>[] = [];
+  const visited = new Set<object>();
+
+  function visit(value: unknown, depth: number) {
+    if (typeof value === "string") {
+      const message = sanitizeDiagnosticText(value);
+      if (message) candidates.push({ message });
+      return;
+    }
+
+    if (
+      depth > 4 ||
+      value === null ||
+      (typeof value !== "object" && typeof value !== "function")
+    ) {
+      return;
+    }
+
+    const record = value as Record<string, unknown>;
+    if (visited.has(record)) return;
+    visited.add(record);
+
+    const candidate: Partial<ProfileLoadError> = {
+      code: sanitizeDiagnosticText(record.code),
+      message: sanitizeDiagnosticText(
+        value instanceof Error ? value.message : record.message,
+      ),
+      details: sanitizeDiagnosticText(record.details),
+      hint: sanitizeDiagnosticText(record.hint),
+    };
+
+    if (Object.values(candidate).some(Boolean)) candidates.push(candidate);
+
+    for (const key of ["error", "cause", "originalError"]) {
+      if (key in record) visit(record[key], depth + 1);
+    }
+  }
+
+  visit(cause, 0);
+
+  const ordered = candidates.sort((left, right) => {
+    const score = (candidate: Partial<ProfileLoadError>) =>
+      (candidate.code ? 4 : 0) +
+      (candidate.details ? 2 : 0) +
+      (candidate.hint ? 2 : 0) +
+      (candidate.message ? 1 : 0);
+    return score(right) - score(left);
+  });
+
+  return {
+    message:
+      ordered.find((candidate) => candidate.message)?.message ??
+      "Não foi possível carregar os dados do perfil.",
+    code: ordered.find((candidate) => candidate.code)?.code,
+    details: ordered.find((candidate) => candidate.details)?.details,
+    hint: ordered.find((candidate) => candidate.hint)?.hint,
+  };
+}
+
+async function loadProfile(user: User): Promise<Profile | null> {
   const { data, error } = await supabase
     .from("profiles")
     .select(profileColumns)
@@ -44,36 +138,7 @@ async function loadOrCreateProfile(user: User): Promise<Profile> {
     .maybeSingle();
 
   if (error) throw error;
-  if (data) return normalizeProfile(data as ProfileRecord);
-
-  const { data: created, error: createError } = await supabase
-    .from("profiles")
-    .insert({
-      id: user.id,
-      email: user.email ?? "",
-      saldo: 0,
-      plano: "Basic",
-      grupos_usados: 0,
-    })
-    .select(profileColumns)
-    .single();
-
-  if (!createError && created) {
-    return normalizeProfile(created as ProfileRecord);
-  }
-
-  // A profile trigger may have inserted the row between the read and insert.
-  const { data: existing, error: retryError } = await supabase
-    .from("profiles")
-    .select(profileColumns)
-    .eq("id", user.id)
-    .maybeSingle();
-
-  if (!retryError && existing) {
-    return normalizeProfile(existing as ProfileRecord);
-  }
-
-  throw createError ?? retryError ?? new Error("Não foi possível carregar o perfil.");
+  return data ? normalizeProfile(data as ProfileRecord) : null;
 }
 
 function getInitialAuthView(): AuthScreenState {
@@ -93,7 +158,8 @@ export default function App() {
   const [authView, setAuthView] = useState<AuthScreenState>(getInitialAuthView);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [profileLoading, setProfileLoading] = useState(false);
-  const [profileError, setProfileError] = useState<string | null>(null);
+  const [profileError, setProfileError] = useState<ProfileLoadError | null>(null);
+  const [profileNotFound, setProfileNotFound] = useState(false);
   const [profileRetry, setProfileRetry] = useState(0);
 
   useEffect(() => {
@@ -116,6 +182,7 @@ export default function App() {
         setUser(null);
         setProfile(null);
         setProfileError(null);
+        setProfileNotFound(false);
         recoverySessionRef.current = false;
         setRecoverySession(false);
         setAuthView("sign-in");
@@ -168,26 +235,33 @@ export default function App() {
     if (!user) {
       setProfile(null);
       setProfileError(null);
+      setProfileNotFound(false);
       setProfileLoading(false);
       return;
     }
 
     let active = true;
+    setProfile(null);
+    setProfileNotFound(false);
     setProfileLoading(true);
     setProfileError(null);
 
-    void loadOrCreateProfile(user)
+    void loadProfile(user)
       .then((nextProfile) => {
-        if (active) setProfile(nextProfile);
+        if (!active) return;
+        if (nextProfile) {
+          setProfile(nextProfile);
+          setProfileNotFound(false);
+        } else {
+          setProfile(null);
+          setProfileNotFound(true);
+        }
       })
       .catch((cause: unknown) => {
         if (!active) return;
         setProfile(null);
-        setProfileError(
-          cause instanceof Error
-            ? cause.message
-            : "Não foi possível carregar os dados do perfil.",
-        );
+        setProfileNotFound(false);
+        setProfileError(readProfileLoadError(cause));
       })
       .finally(() => {
         if (active) setProfileLoading(false);
@@ -279,6 +353,7 @@ export default function App() {
       profile={profile}
       loading={profileLoading}
       error={profileError}
+      profileNotFound={profileNotFound}
       onRetry={() => setProfileRetry((attempt) => attempt + 1)}
       onSignOut={signOut}
     />
