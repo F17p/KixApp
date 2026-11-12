@@ -1,0 +1,1 @@
+- [Supabase backend scope](supabase-backend-scope.md) — preserve the connected backend; ask before changing database objects.
