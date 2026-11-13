@@ -1928,9 +1928,9 @@ async function entrarGrupo(groupId){
 
     if(qtd>=numero(grupo.max_membros)) return alert("O grupo está cheio.");
 
-    const {error}=await client
-      .from("group_members")
-      .insert({group_id:groupId,user_id:state.user.id});
+    const {error}=await client.rpc("entrar_grupo_kixapp",{
+      p_group_id:groupId
+    });
 
     if(error) throw error;
 

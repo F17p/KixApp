@@ -1,0 +1,217 @@
+.kix-groups-section {
+  margin-top: 18px;
+  border: 1px solid hsl(var(--kix-line));
+  border-radius: 16px;
+  padding: clamp(20px, 3vw, 30px);
+  background: hsl(var(--kix-paper));
+}
+
+.kix-groups-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.kix-groups-header h2 {
+  margin: 10px 0 5px;
+  font-family: var(--kix-display);
+  font-size: 1.6rem;
+  font-weight: 600;
+  letter-spacing: -.045em;
+}
+
+.kix-groups-header p {
+  margin: 0;
+  color: hsl(var(--kix-muted));
+  font-size: .82rem;
+}
+
+.kix-groups-refresh,
+.kix-groups-join {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid hsl(var(--kix-brand) / .18);
+  border-radius: 9px;
+  padding: 0 14px;
+  color: hsl(var(--kix-brand));
+  background: hsl(var(--kix-paper));
+  font-size: .78rem;
+  font-weight: 700;
+  transition: background .16s ease, transform .16s ease, opacity .16s ease;
+}
+
+.kix-groups-refresh:hover:not(:disabled) {
+  background: hsl(var(--kix-brand-soft));
+}
+
+.kix-groups-join {
+  width: 100%;
+  margin-top: auto;
+  border-color: hsl(var(--kix-brand));
+  color: hsl(var(--kix-paper));
+  background: hsl(var(--kix-brand));
+}
+
+.kix-groups-join:hover:not(:disabled) {
+  background: hsl(var(--kix-brand-deep));
+  transform: translateY(-1px);
+}
+
+.kix-groups-refresh:disabled,
+.kix-groups-join:disabled {
+  cursor: not-allowed;
+  opacity: .58;
+}
+
+.kix-groups-filters {
+  display: flex;
+  gap: 7px;
+  margin: 22px 0 18px;
+  overflow-x: auto;
+  padding: 2px 1px 5px;
+}
+
+.kix-groups-filters button {
+  min-height: 34px;
+  flex: none;
+  border: 1px solid hsl(var(--kix-line));
+  border-radius: 999px;
+  padding: 0 13px;
+  color: hsl(var(--kix-muted));
+  background: transparent;
+  font-size: .74rem;
+  font-weight: 600;
+}
+
+.kix-groups-filters button.is-active {
+  border-color: hsl(var(--kix-brand));
+  color: hsl(var(--kix-paper));
+  background: hsl(var(--kix-brand));
+}
+
+.kix-groups-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 225px), 1fr));
+  gap: 13px;
+}
+
+.kix-group-card {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  border: 1px solid hsl(var(--kix-line));
+  border-radius: 13px;
+  padding: 17px;
+  background: hsl(var(--kix-paper));
+}
+
+.kix-group-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.kix-group-type,
+.kix-group-member-badge {
+  display: inline-flex;
+  min-height: 25px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 9px;
+  color: hsl(var(--kix-brand));
+  background: hsl(var(--kix-brand-soft));
+  font-size: .67rem;
+  font-weight: 700;
+}
+
+.kix-group-member-badge {
+  color: hsl(var(--kix-success));
+  background: hsl(var(--kix-success) / .1);
+}
+
+.kix-group-card h3 {
+  margin: 15px 0 5px;
+  overflow-wrap: anywhere;
+  font-size: .98rem;
+  font-weight: 700;
+}
+
+.kix-group-value {
+  margin: 0 0 15px;
+  color: hsl(var(--kix-muted));
+  font-size: .78rem;
+}
+
+.kix-group-capacity {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid hsl(var(--kix-line));
+  padding-top: 12px;
+  font-size: .75rem;
+}
+
+.kix-group-capacity span,
+.kix-group-places {
+  color: hsl(var(--kix-muted));
+}
+
+.kix-group-places {
+  min-height: 18px;
+  margin: 7px 0 14px;
+  font-size: .72rem;
+}
+
+.kix-groups-message,
+.kix-groups-load-error,
+.kix-groups-state {
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: .8rem;
+  line-height: 1.5;
+}
+
+.kix-groups-message {
+  margin: 0 0 12px;
+}
+
+.kix-groups-message-success {
+  color: hsl(var(--kix-success));
+  background: hsl(var(--kix-success) / .1);
+}
+
+.kix-groups-message-error,
+.kix-groups-load-error {
+  color: hsl(var(--kix-danger));
+  background: hsl(var(--kix-danger) / .08);
+}
+
+.kix-groups-load-error p {
+  margin: 0 0 10px;
+}
+
+.kix-groups-load-error .kix-groups-refresh {
+  border-color: hsl(var(--kix-danger) / .25);
+  color: hsl(var(--kix-danger));
+}
+
+.kix-groups-state {
+  margin: 0;
+  color: hsl(var(--kix-muted));
+  background: hsl(var(--kix-canvas));
+}
+
+@media (max-width: 520px) {
+  .kix-groups-header {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .kix-groups-refresh {
+    align-self: flex-start;
+  }
+}

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import GroupsDiscovery from "./GroupsDiscovery";
 import "./kixapp-ui.css";
 
 export interface AuthUser {
@@ -316,6 +317,8 @@ export default function DashboardView({
                 </div>
               </section>
             </div>
+
+            <GroupsDiscovery userId={user.id} />
           </>
         )}
       </div>
